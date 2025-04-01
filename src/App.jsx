@@ -1,19 +1,28 @@
+import PostsList from "./components/PostsList";
+import {LoginForm} from "./components/LoginForm";
+import MainHeader from "./components/MainHeader";
+import {useState} from "react";
+
 function App() {
-  return (
-    <div>
-      <header>
-        <img src="src/assets/react-core-concepts.png" alt="Stylized atom" />
-        <h1>React Essentials</h1>
-        <p>
-          Fundamental React concepts you will need for almost any app you are
-          going to build!
-        </p>
-      </header>
-      <main>
-        <h2>Time to get started!</h2>
-      </main>
-    </div>
-  );
+    const [modalIsVisible, setModalIsVisible] = useState(false);
+
+    function showModalHandler() {
+        setModalIsVisible(true)
+    }
+
+    function hideModalHandler() {
+        setModalIsVisible(false)
+    }
+
+    return (
+        <>
+            <MainHeader isModalVisible={showModalHandler}></MainHeader>
+            <PostsList isPostModalVisible={modalIsVisible} onModalHandler={hideModalHandler}></PostsList>
+            <LoginForm></LoginForm>
+        </>
+
+
+    )
 }
 
 export default App;
