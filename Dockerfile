@@ -6,7 +6,11 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
+# Create a volume for node_modules to persist between container restarts
+VOLUME /app/node_modules
+
 EXPOSE 3000
+
 CMD ["npm", "start"]
 
 # Production Build Stage
