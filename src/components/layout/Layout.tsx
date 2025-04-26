@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
@@ -6,12 +5,23 @@ import { Sidebar } from 'primereact/sidebar';
 import { Menu } from 'primereact/menu';
 import { Avatar } from 'primereact/avatar';
 import AuthService from '../../services/auth.service';
+import { useEffect, useState } from 'react';
+import {User} from "../../types";
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  
-  const user = AuthService.getCurrentUser();
+
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      const currentUser = await AuthService.getCurrentUser();
+      setUser(currentUser);
+    }
+
+    fetchUser();
+  }, []);
   
   const menuItems = [
     {
@@ -47,7 +57,7 @@ const Layout: React.FC = () => {
       onClick={() => setSidebarVisible(true)}
     />
   );
-  
+
   const end = user ? (
     <div className="flex align-items-center gap-2">
       <span className="font-bold hidden md:block">
@@ -56,13 +66,10 @@ const Layout: React.FC = () => {
       <Avatar icon="pi pi-user" size="large" shape="circle" />
     </div>
   ) : (
-    <Button 
-      label="Login" 
-      icon="pi pi-sign-in" 
-      onClick={() => navigate('/login')} 
-    />
+      <Avatar icon="pi pi-user" size="xlarge" />
+
   );
-  
+
   return (
     <div className="min-h-screen flex flex-column">
       <Menubar model={menuItems} start={start} end={end} className="shadow-2" />

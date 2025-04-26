@@ -28,9 +28,9 @@ const Login: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await AuthService.login({ email, password });
-      
+
+      await AuthService.login({email, password});
+
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (err: any) {
@@ -42,7 +42,7 @@ const Login: React.FC = () => {
 
   return (
     <div className="flex justify-content-center align-items-center h-screen">
-      <Card title="Login" className="w-full md:w-6 lg:w-4" style={{ maxWidth: '450px' }}>
+      <Card title="Login" className="w-full md:w-6 lg:w-4" style={{ maxWidth: '600px' }}>
         <form onSubmit={handleLogin} className="p-fluid">
           <div className="field">
             <label htmlFor="email" className="font-bold">Email</label>

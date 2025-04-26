@@ -7,10 +7,13 @@ import Layout from './components/layout/Layout';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './pages/Dashboard';
+import AuthService from './services/auth.service';
+
+
 
 // Auth guard for protected routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('token') !== null;
+  const isAuthenticated = AuthService.checkAuthStatus()
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
