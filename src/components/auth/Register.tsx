@@ -7,6 +7,7 @@ import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { classNames } from 'primereact/utils';
 import AuthService from '../../services/auth.service';
+import {Dialog} from "primereact/dialog";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -53,15 +55,23 @@ const Register: React.FC = () => {
       };
       
       await AuthService.register(registerData);
-      
-      // Redirect to login page with success message
-      navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+
+      setShowSuccessDialog(true);
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
   };
+
+  const closeDialog = () => {
+    setShowSuccessDialog(false);
+    navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+  };
+
+  const dialogFooter = (
+      <Button label="Continue" onClick={closeDialog} autoFocus />
+  );
 
   return (
     <div className="flex justify-content-center align-items-center h-screen">
@@ -73,7 +83,7 @@ const Register: React.FC = () => {
               <InputText 
                 id="firstName"
                 name="firstName" 
-                value={formData.firstName} 
+                value={formData.firstName}
                 onChange={handleChange} 
                 className={classNames({ 'p-invalid': submitted && !formData.firstName })}
               />
@@ -154,7 +164,21 @@ const Register: React.FC = () => {
           </div>
         </form>
       </Card>
+
+      <Dialog
+          header="Registration Successful"
+          visible={showSuccessDialog}
+          style={{ width: '350px' }}
+          footer={dialogFooter}
+          onHide={closeDialog}
+          modal
+      >
+        <p>Your account has been created successfully!</p>
+        <p>You can now log in and start using our services.</p>
+      </Dialog>
     </div>
+
+
   );
 };
 

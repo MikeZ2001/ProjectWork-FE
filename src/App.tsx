@@ -9,8 +9,6 @@ import Register from './components/auth/Register';
 import Dashboard from './pages/Dashboard';
 import AuthService from './services/auth.service';
 
-
-
 // Auth guard for protected routes
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = AuthService.checkAuthStatus()
@@ -30,7 +28,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
+
           {/* Protected Routes */}
           <Route path="/" element={
             <PrivateRoute>
