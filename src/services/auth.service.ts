@@ -62,7 +62,6 @@ class AuthService {
   async getCurrentUser(): Promise<User | null> {
     try {
       const response = await api.get('v1/user');
-      console.log(response.data.first_name);
       return response.data as User;
     } catch (error) {
       console.error('Get current user error', error);

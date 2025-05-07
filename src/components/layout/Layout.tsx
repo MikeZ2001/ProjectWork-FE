@@ -1,4 +1,4 @@
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { Sidebar } from 'primereact/sidebar';
@@ -16,12 +16,20 @@ const Layout: React.FC = () => {
 
   useEffect(() => {
     async function fetchUser() {
-      const currentUser = await AuthService.getCurrentUser();
-      setUser(currentUser);
+      try {
+        const currentUser = await AuthService.getCurrentUser();
+        if (!currentUser) {
+          navigate('/login');
+        }
+        setUser(currentUser);
+      } catch {
+        AuthService.logout();
+        navigate('/login');
+      }
     }
-
     fetchUser();
-  }, []);
+  }, [navigate]);
+
   
   const menuItems = [
     {

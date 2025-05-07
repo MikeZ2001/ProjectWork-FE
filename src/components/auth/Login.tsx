@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
@@ -7,6 +7,7 @@ import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { classNames } from 'primereact/utils';
 import AuthService from '../../services/auth.service';
+import { useLocation } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -15,15 +16,17 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
+
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    emailRef.current?.focus();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    
-    // Simple validation
-    if (!email || !password) {
-      return;
-    }
 
     try {
       setLoading(true);
@@ -34,11 +37,13 @@ const Login: React.FC = () => {
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred during login');
+      setError(err.response?.data?.error_description || 'An error occurred during login');
     } finally {
       setLoading(false);
     }
   };
+
+  const emailIsInvalid = submitted && !isValidEmail(email);
 
   return (
     <div className="flex justify-content-center align-items-center h-screen">
@@ -47,13 +52,18 @@ const Login: React.FC = () => {
           <div className="field">
             <label htmlFor="email" className="font-bold">Email</label>
             <InputText 
-              id="email" 
-              type="text" 
-              value={email} 
+              id="email"
+              type="email"
+              value={email}
+              ref={emailRef}
+              aria-required="true"
+              aria-label="Email"
               onChange={(e) => setEmail(e.target.value)} 
-              className={classNames({ 'p-invalid': submitted && !email })}
+              className={classNames({ 'p-invalid': emailIsInvalid })}
             />
-            {submitted && !email && <small className="p-error">Email is required.</small>}
+            {emailIsInvalid && (
+                <small className="p-error">Please enter a valid email address.</small>
+            )}
           </div>
 
           <div className="field mt-4">
@@ -64,6 +74,8 @@ const Login: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)} 
               toggleMask 
               feedback={false}
+              aria-required="true"
+              aria-label="Password"
               className={classNames({ 'p-invalid': submitted && !password })}
             />
             {submitted && !password && <small className="p-error">Password is required.</small>}
@@ -81,6 +93,7 @@ const Login: React.FC = () => {
               className="p-button-primary" 
               loading={loading} 
               type="submit"
+              disabled={!email || !password || loading}
             />
             <Link to="/register" className="p-button p-button-link mt-3 sm:mt-0">
               New user? Register here
@@ -89,6 +102,7 @@ const Login: React.FC = () => {
         </form>
       </Card>
     </div>
+
   );
 };
 
