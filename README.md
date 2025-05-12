@@ -40,7 +40,7 @@ yarn install
 Create a `.env` file in the root directory (or edit it if it exists):
 
 ```bash
-echo "REACT_APP_API_URL=http://localhost:8000/api" > .env
+echo "REACT_APP_API_URL=https://localhost:8000/api" > .env
 ```
 
 4. Start the development server:

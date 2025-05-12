@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Define base API URL
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'https://localhost/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -19,7 +19,6 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized errors by redirecting to login
     if (error.response && error.response.status === 401) {
-      //localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
