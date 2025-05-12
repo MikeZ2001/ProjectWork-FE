@@ -42,31 +42,8 @@ class AuthService {
     }
   }
 
-  async checkAuthStatus() {
-    try {
-      const response = await api.get('v1/auth_status');
-      if (response.status === 200) {
-        console.log('User is authenticated');
-        return true;
-      }
-    } catch (error) {
-      console.log('User is NOT authenticated');
-      return false;
-    }
-  }
-
   logout(): void {
       api.post('/v1/logout').catch(error => console.error('Logout error:', error));
-  }
-
-  async getCurrentUser(): Promise<User | null> {
-    try {
-      const response = await api.get('v1/user');
-      return response.data as User;
-    } catch (error) {
-      console.error('Get current user error', error);
-      return null;
-    }
   }
 
 }

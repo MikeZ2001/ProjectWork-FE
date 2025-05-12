@@ -4,9 +4,10 @@ import { Button } from 'primereact/button';
 import { Sidebar } from 'primereact/sidebar';
 import { Menu } from 'primereact/menu';
 import { Avatar } from 'primereact/avatar';
-import AuthService from '../../services/auth.service';
+import UserService from '../../services/user.service';
 import { useEffect, useState } from 'react';
 import {User} from "../../types";
+import AuthService from "../../services/auth.service";
 
 const Layout: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Layout: React.FC = () => {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const currentUser = await AuthService.getCurrentUser();
+        const currentUser = await UserService.getCurrentUser();
         if (!currentUser) {
           navigate('/login');
         }
@@ -27,7 +28,7 @@ const Layout: React.FC = () => {
         navigate('/login');
       }
     }
-    fetchUser();
+    fetchUser()
   }, [navigate]);
 
   
@@ -90,7 +91,7 @@ const Layout: React.FC = () => {
           </div>
         </div>
       </Sidebar>
-      
+
       <div className="flex-grow-1 p-4">
         <Outlet />
       </div>
