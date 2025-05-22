@@ -7,7 +7,6 @@ import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { classNames } from 'primereact/utils';
 import AuthService from '../../services/auth.service';
-import { useLocation } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

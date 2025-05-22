@@ -4,9 +4,9 @@ import './App.css';
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 
 // Lazy-loaded components
-const Layout = lazy(() => import('./components/layout/Layout'));
-const Login = lazy(() => import('./components/auth/Login'));
-const Register = lazy(() => import('./components/auth/Register'));
+const Layout = lazy(() => import('./Layout'));
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 function App() {
