@@ -6,7 +6,7 @@ import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { classNames } from 'primereact/utils';
-import AuthService from '../../services/auth.service';
+import AuthService from '../../services/auth/auth.service';
 import {Dialog} from "primereact/dialog";
 
 const Register: React.FC = () => {
@@ -177,8 +177,6 @@ const Register: React.FC = () => {
         <p>You can now log in and start using our services.</p>
       </Dialog>
     </div>
-
-
   );
 };
 

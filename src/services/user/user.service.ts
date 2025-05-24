@@ -1,5 +1,5 @@
-import {User} from "../types";
-import api from "./api";
+import {User} from "@models/user";
+import api from "../api";
 
 class UserService {
     async getCurrentUser(): Promise<User | null> {

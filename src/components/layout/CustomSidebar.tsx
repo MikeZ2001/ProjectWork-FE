@@ -1,6 +1,6 @@
 import React from "react";
 import {Menu} from "primereact/menu";
-import AuthService from "../../services/auth.service";
+import AuthService from "../../services/auth/auth.service";
 import {useNavigate} from "react-router-dom";
 import {Sidebar} from "primereact/sidebar";
 interface SidebarProps {

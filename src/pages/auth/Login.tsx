@@ -6,7 +6,7 @@ import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { classNames } from 'primereact/utils';
-import AuthService from '../../services/auth.service';
+import AuthService from '../../services/auth/auth.service';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

@@ -2,10 +2,11 @@ import React, {useEffect, useState} from "react";
 import {Button} from "primereact/button";
 import {Avatar} from "primereact/avatar";
 import {useNavigate} from "react-router-dom";
-import {User} from "../../types";
-import UserService from "../../services/user.service";
-import AuthService from "../../services/auth.service";
+import {User} from "@models/user";
+
 import {Toolbar} from "primereact/toolbar";
+import UserService from "../../services/user/user.service";
+import AuthService from "../../services/auth/auth.service";
 
 interface TopBarProps {
     setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;

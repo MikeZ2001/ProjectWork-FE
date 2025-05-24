@@ -1,5 +1,5 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import {StrictMode} from 'react';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
@@ -10,14 +10,15 @@ import 'primereact/resources/primereact.min.css'; // Core styles
 import 'primeicons/primeicons.css'; // Icons
 import 'primeflex/primeflex.css'; // PrimeFlex for layout
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+const rootElement = document.getElementById('root');
+
+// @ts-ignore
+const root = createRoot(rootElement);
 
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
+  </StrictMode>
 );
