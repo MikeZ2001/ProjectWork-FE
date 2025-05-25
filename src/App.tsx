@@ -9,7 +9,7 @@ const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 
-function App() {
+const App:React.FC = () => {
     return (
         <div className="App">
             <Suspense fallback={<LoadingSpinner />}>

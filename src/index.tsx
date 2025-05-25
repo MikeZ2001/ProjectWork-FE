@@ -10,7 +10,7 @@ import 'primereact/resources/primereact.min.css'; // Core styles
 import 'primeicons/primeicons.css'; // Icons
 import 'primeflex/primeflex.css'; // PrimeFlex for layout
 
-const rootElement = document.getElementById('root');
+const rootElement: HTMLElement|null = document.getElementById('root');
 
 // @ts-ignore
 const root = createRoot(rootElement);
