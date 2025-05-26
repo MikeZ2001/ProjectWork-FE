@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import React, { useState } from 'react';
-import TopBar from "./components/layout/TopBar";
-import CustomSidebar from "./components/layout/CustomSidebar";
+import TopBar from "./components/Layout/TopBar";
+import CustomSidebar from "./components/Layout/CustomSidebar";
 
 const Layout: React.FC = () => {
   const [sidebarVisible, setSidebarVisible] = useState(false);

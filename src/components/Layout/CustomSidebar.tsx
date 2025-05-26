@@ -3,6 +3,7 @@ import {Menu} from "primereact/menu";
 import AuthService from "../../services/auth/auth.service";
 import {useNavigate} from "react-router-dom";
 import {Sidebar} from "primereact/sidebar";
+import {getUserMenuItems} from "./userMenuItems";
 interface SidebarProps {
     sidebarVisible: boolean;
     setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -10,24 +11,7 @@ interface SidebarProps {
 const CustomSidebar: React.FC<SidebarProps> = ( {sidebarVisible, setSidebarVisible}) => {
     const navigate = useNavigate();
 
-    const userMenuItems = [
-        {
-            label: 'Dashboard',
-            icon: 'pi pi-home',
-            command: () => navigate('/dashboard')
-        },
-        {
-            separator: true
-        },
-        {
-            label: 'Logout',
-            icon: 'pi pi-sign-out',
-            command: () => {
-                AuthService.logout();
-                navigate('/login');
-            }
-        }
-    ];
+    const userMenuItems = getUserMenuItems(navigate)
 
     return (
         <div>

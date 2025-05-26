@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import LoadingSpinner from "./components/ui/LoadingSpinner";
+import LoadingSpinner from "./components/Ui/LoadingSpinner";
 
 // Lazy-loaded components
 const Layout = lazy(() => import('./Layout'));

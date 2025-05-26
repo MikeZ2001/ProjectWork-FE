@@ -8,7 +8,7 @@ import App from './App';
 import 'primereact/resources/themes/lara-light-indigo/theme.css'; // Theme
 import 'primereact/resources/primereact.min.css'; // Core styles
 import 'primeicons/primeicons.css'; // Icons
-import 'primeflex/primeflex.css'; // PrimeFlex for layout
+import 'primeflex/primeflex.css'; // PrimeFlex for Layout
 
 const rootElement: HTMLElement|null = document.getElementById('root');
 
