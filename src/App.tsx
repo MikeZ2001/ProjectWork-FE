@@ -9,6 +9,8 @@ const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 
+const AccountManagement = lazy(() => import('./pages/AccountManagement'));
+
 const App:React.FC = () => {
     return (
         <div className="App">
@@ -20,6 +22,7 @@ const App:React.FC = () => {
                     <Route path="/" element={<Layout />}>
                         <Route index element={<Navigate to="/dashboard" replace />} />
                         <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="accounts" element={<AccountManagement />} />
                     </Route>
 
                     <Route path="*" element={<Navigate to="/" replace />} />

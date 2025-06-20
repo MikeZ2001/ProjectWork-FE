@@ -14,7 +14,7 @@ const api = axios.create({
 });
 
 // Response interceptor for handling errors globally
-api.interceptors.response.use(
+/*api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle 401 Unauthorized errors by redirecting to login
@@ -23,6 +23,6 @@ api.interceptors.response.use(
     }
     return Promise.reject(error);
   }
-);
+);*/
 
 export default api; 
