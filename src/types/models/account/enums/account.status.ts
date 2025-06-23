@@ -1,5 +1,5 @@
 export enum AccountStatus {
-    Active = "Active",
-    Inactive = "Inactive",
-    Closed = "Closed"
+    Active = "active",
+    Inactive = "inactive",
+    Closed = "closed"
 }
