@@ -15,6 +15,26 @@ class AccountService {
         }
     }
 
+    async createAccount(accountData: Partial<Account>): Promise<Account> {
+        try {
+            const response = await api.post<Account>('/v1/accounts', accountData);
+            return response.data;
+        } catch (error) {
+            console.error('Error creating account:', error);
+            throw error;
+        }
+    }
+
+    async updateAccount(id: number | undefined, accountData: Partial<Account>): Promise<Account> {
+        try {
+            const response = await api.put<Account>(`/v1/accounts/${id}`, accountData);
+            return response.data;
+        } catch (error) {
+            console.error(`Error updating account ${id}:`, error);
+            throw error;
+        }
+    }
+
     async deleteAccount(id: number) {
         try {
             await api.delete(`v1/accounts/${id}`)

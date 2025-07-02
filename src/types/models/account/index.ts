@@ -5,7 +5,7 @@ export interface Account {
     id: number;
     type: AccountType
     balance: number;
-    openDate: string;
-    closureDate: string;
+    open_date: string;
+    close_date: string|null;
     status: AccountStatus
 }
