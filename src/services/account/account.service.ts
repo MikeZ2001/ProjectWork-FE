@@ -15,6 +15,16 @@ class AccountService {
         }
     }
 
+    async getAccountById(id: number) {
+        try {
+            const response = await api.get(`v1/accounts/${id}`)
+            return response.data
+        } catch (error) {
+            console.error('Account retrieval error', error);
+            throw error;
+        }
+    }
+
     async createAccount(accountData: Partial<Account>): Promise<Account> {
         try {
             const response = await api.post<Account>('/v1/accounts', accountData);

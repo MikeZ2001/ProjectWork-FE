@@ -13,6 +13,11 @@ export const getUserMenuItems = (navigate: (path: string) => void): MenuItem[] =
         command: () => navigate('/accounts')
     },
     {
+        label: 'Transactions',
+        icon: 'pi pi-money-bill',
+        command: () => navigate('/transactions')
+    },
+    {
         separator: true
     },
     {
