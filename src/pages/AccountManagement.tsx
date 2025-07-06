@@ -71,7 +71,6 @@ const AccountManagement: React.FC = () => {
         const newStatus = e.value as AccountStatus;
         setAccount(prev => ({ ...prev, status: newStatus }));
 
-        // if they switch away from Closed, wipe the closeDate
         if (newStatus !== AccountStatus.Closed) {
             setCloseDate(null);
         }

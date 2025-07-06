@@ -10,7 +10,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  withCredentials: true // Important for cookies/CSRF
+  withCredentials: true
 });
 
 // Response interceptor for handling errors globally

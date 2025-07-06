@@ -6,8 +6,8 @@ class AccountService {
         try {
             const response = await api.get(`v1/accounts?page=${page}&per_page=${per_page}`);
             return {
-                data: response.data.data,     // actual accounts
-                total: response.data.total    // total record count for pagination
+                data: response.data.data,
+                total: response.data.total
             };
         } catch (error) {
             console.error('Accounts retrieval error', error);

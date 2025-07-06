@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-import { Calendar } from 'primereact/calendar';
-import { Toast } from 'primereact/toast';
+import React, {useEffect, useRef, useState} from 'react';
+import {DataTable} from 'primereact/datatable';
+import {Column} from 'primereact/column';
+import {Button} from 'primereact/button';
+import {Dialog} from 'primereact/dialog';
+import {InputText} from 'primereact/inputtext';
+import {Dropdown} from 'primereact/dropdown';
+import {InputNumber} from 'primereact/inputnumber';
+import {Calendar} from 'primereact/calendar';
+import {Toast} from 'primereact/toast';
 import {Account} from "@models/account";
 import {Transaction} from "@models/transaction";
 import TransactionService from "../services/transaction/transaction.service";
 import AccountService from "../services/account/account.service";
-
+import {TransactionType} from "types/models/transaction/enums/transaction.type";
 
 const TransactionManagement: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -21,7 +21,7 @@ const TransactionManagement: React.FC = () => {
   const [transactionDialog, setTransactionDialog] = useState(false);
   const [deleteTransactionDialog, setDeleteTransactionDialog] = useState(false);
   const [transaction, setTransaction] = useState<Partial<Transaction>>({
-    type: 'deposit',
+    type: TransactionType.Transfer,
     amount: 0,
     description: ''
   });
@@ -64,7 +64,7 @@ const TransactionManagement: React.FC = () => {
     setTransactionDate(picked);
     setTransaction(prev => ({
       ...prev,
-      date: picked.toISOString(),    // or picked.toISOString().split('T')[0] if your API expects yyyy-mm-dd
+      date: picked.toISOString(),
     }));
   };
 
@@ -107,7 +107,7 @@ const TransactionManagement: React.FC = () => {
 
   const openNew = () => {
     setTransaction({
-      type: 'deposit',
+      type: TransactionType.Withdrawal,
       amount: 0,
       description: '',
       date: new Date().toISOString()
@@ -329,7 +329,6 @@ const TransactionManagement: React.FC = () => {
         emptyMessage={selectedAccount ? "No transactions found for this account." : "Please select an account to view transactions."}
         className="p-datatable-sm"
       >
-        <Column selectionMode="single" style={{ width: '3rem' }}></Column>
         <Column field="id" header="ID" sortable style={{ minWidth: '5rem' }}></Column>
         <Column field="type" header="Type" body={typeTemplate} sortable style={{ minWidth: '8rem' }}></Column>
         <Column field="amount" header="Amount" body={amountTemplate} sortable style={{ minWidth: '8rem' }}></Column>
