@@ -67,7 +67,7 @@ class TransactionService {
                 description: description
             };
 
-            const response = await api.post<any>('/transfers', apiData);
+            const response = await api.post<any>('/v1/transfers', apiData);
             return response.data;
         } catch (error) {
             console.error('Error transferring funds:', error);
