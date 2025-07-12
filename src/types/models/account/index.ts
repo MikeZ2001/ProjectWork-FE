@@ -3,6 +3,7 @@ import {AccountStatus} from "@models/account/enums/account.status";
 
 export interface Account {
     id: number;
+    name: string;
     type: AccountType
     balance: number;
     open_date: string;

@@ -12,6 +12,7 @@ import {Dialog} from "primereact/dialog";
 import {Dropdown} from "primereact/dropdown";
 import {InputNumber} from "primereact/inputnumber";
 import {Calendar} from "primereact/calendar";
+import {InputText} from "primereact/inputtext";
 
 const AccountManagement: React.FC = () => {
 
@@ -59,6 +60,14 @@ const AccountManagement: React.FC = () => {
         }));
     };
 
+    const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, name: string) => {
+        const val = e.target.value;
+        setAccount(prevAccount => ({
+            ...prevAccount,
+            [name]: val
+        }));
+    };
+
     const onDropdownChange = (e: { value: any }, name: string) => {
         const val = e.value;
         setAccount(prevAccount => ({
@@ -88,7 +97,8 @@ const AccountManagement: React.FC = () => {
     const accountTypes = [
         { label: 'Checking', value: AccountType.Checking.toString() },
         { label: 'Savings', value: AccountType.Savings.toString() },
-        { label: 'Investment', value: AccountType.Investment.toString() }
+        { label: 'Investment', value: AccountType.Investment.toString() },
+        { label: 'Cash', value: AccountType.Cash.toString() }
     ];
 
     const statusOptions = [
@@ -132,23 +142,39 @@ const AccountManagement: React.FC = () => {
         setDeleteAccountDialog(false);
     };
 
-    const saveAccount = async () => {
-
+    const validateAccount = (account: Partial<Account>, openDate: Date|null|undefined, closeDate: Date|null|undefined) => {
+        if (!account.type) {
+            return 'Account type is required';
+        }
+        if (account.balance == null) {
+            return 'Balance is required';
+        }
+        if (!openDate) {
+            return 'Open date is required';
+        }
         if (account.status === AccountStatus.Closed && !closeDate) {
-            toast.current?.show({ severity: 'error', summary: 'Error',
-                detail: 'You must select a closing date when status is Closed', life: 3000 });
+            return 'You must select a closing date when status is Closed';
+        }
+        return null;
+    };
+
+    const saveAccount = async () => {
+        setSubmitted(true);
+        const error = validateAccount(account, openDate, closeDate);
+
+        if (error)  {
+            console.log(error);
             return;
         }
 
         try {
             account.open_date = openDate?.toISOString().split('T')[0];
             account.close_date = closeDate?.toISOString().split('T')[0] ?? null;
+
             const newAccount = await AccountService.createAccount(account);
             setAccounts([...accounts, newAccount]);
             toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Account Created', life: 3000 });
-
             setAccountDialog(false);
-            setSubmitted(true);
             setAccount({});
         } catch (error) {
             console.error('Error saving account', error);
@@ -157,21 +183,21 @@ const AccountManagement: React.FC = () => {
     };
 
     const updateAccount = async () => {
-
-        if (account.status === AccountStatus.Closed && !closeDate) {
-            toast.current?.show({ severity: 'error', summary: 'Error',
-                detail: 'You must select a closing date when status is Closed', life: 3000 });
+        setSubmitted(true);
+        const error = validateAccount(account, openDate, closeDate);
+        if (error)  {
+            console.log(error);
             return;
         }
 
         try {
             account.open_date = openDate?.toISOString().split('T')[0];
             account.close_date = closeDate?.toISOString().split('T')[0] ?? null;
+
             const updatedAccount = await AccountService.updateAccount(account.id, account);
             setAccounts(accounts.map(a => a.id === updatedAccount.id ? updatedAccount : a));
             toast.current?.show({severity: 'success', summary: 'Success', detail: 'Account Updated', life: 3000});
             setAccountDialog(false);
-            setSubmitted(true);
             setAccount({});
         } catch (error) {
             console.error('Error updating account', error);
@@ -276,13 +302,13 @@ const AccountManagement: React.FC = () => {
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords} accounts"
               rowsPerPageOptions={[5, 10, 15]}
           >
-
-              <Column field="id" header="id" sortable style={{minWidth: '5rem'}}></Column>
-              <Column field="type" header="type" body={accountTypeTemplate} sortable style={{minWidth: '10rem'}}></Column>
-              <Column field="balance" header="Balance" body={balanceTemplate} sortable style={{minWidth: '8rem'}}></Column>
-              <Column field="status" header="Status" body={statusTemplate} sortable style={{minWidth: '8rem'}}></Column>
+              <Column field="id" header="id" style={{minWidth: '5rem'}}></Column>
+              <Column field="name" header="name" style={{minWidth: '5rem'}}></Column>
+              <Column field="type" header="type" body={accountTypeTemplate} style={{minWidth: '10rem'}}></Column>
+              <Column field="balance" header="Balance" body={balanceTemplate} style={{minWidth: '8rem'}}></Column>
+              <Column field="status" header="Status" body={statusTemplate} style={{minWidth: '8rem'}}></Column>
               <Column field="open_date" header="Opening date" body={openDateTemplate} style={{minWidth: '8rem'}}></Column>
-              <Column field="close_date" header="Close date" body={closeDateTemplate} style={{minWidth: '8rem'}}></Column>
+              <Column field="close_date" header="Closure date" body={closeDateTemplate} style={{minWidth: '8rem'}}></Column>
               <Column body={actionBodyTemplate} style={{width: '8rem'}}></Column>
           </DataTable>
 
@@ -296,6 +322,18 @@ const AccountManagement: React.FC = () => {
               footer={accountDialogFooter}
               onHide={hideDialog}
           >
+              <div className="field">
+                  <label htmlFor="name">Name</label>
+                  <InputText
+                      id="name"
+                      value={account.name}
+                      onChange={(e) => onInputChange(e, 'name')}
+                      placeholder="Enter a name"
+                      className={submitted && !account.name ? 'p-invalid' : ''}
+                  />
+                  {submitted && !account.name && <small className="p-error">Account name is required.</small>}
+              </div>
+
               <div className="field">
                   <label htmlFor="accountType">Account Type</label>
                   <Dropdown
@@ -316,8 +354,8 @@ const AccountManagement: React.FC = () => {
                           value={account.balance}
                           onValueChange={(e) => onAmountChange(e, 'balance')}
                           mode="currency"
-                          currency="USD"
-                          locale="en-US"
+                          currency="EUR"
+                          locale="it-IT"
                           disabled
                       />
                   </div>
@@ -329,8 +367,8 @@ const AccountManagement: React.FC = () => {
                           value={account.balance}
                           onValueChange={(e) => onAmountChange(e, 'balance')}
                           mode="currency"
-                          currency="USD"
-                          locale="en-US"
+                          currency="EUR"
+                          locale="it-IT"
                       />
                   </div>
               )}
@@ -358,7 +396,8 @@ const AccountManagement: React.FC = () => {
               </div>
 
               <div className="field">
-                  <label htmlFor="closure_date">Closure Date {account.status === AccountStatus.Closed && <span className="p-error">*</span>}</label>
+                  <label htmlFor="closure_date">Closure Date {account.status === AccountStatus.Closed &&
+                      <span className="p-error">*</span>}</label>
                   <Calendar
                       id="closure_date"
                       value={closeDate}
@@ -369,6 +408,7 @@ const AccountManagement: React.FC = () => {
                       disabled={account.status !== AccountStatus.Closed}
                       required={account.status === AccountStatus.Closed}
                   />
+                  {submitted && !account.close_date && account.status === AccountStatus.Closed && <small className="p-error">Account closure date is required.</small>}
               </div>
           </Dialog>
 
@@ -381,7 +421,7 @@ const AccountManagement: React.FC = () => {
               onHide={hideDeleteAccountDialog}
           >
               <div className="confirmation-content">
-                  <i className="pi pi-exclamation-triangle mr-3" style={{fontSize: '2rem'}}/>
+              <i className="pi pi-exclamation-triangle mr-3" style={{fontSize: '2rem'}}/>
                   {account && <span>Are you sure you want to delete this account?</span>}
               </div>
           </Dialog>

@@ -41,9 +41,10 @@ const Dashboard: React.FC = () => {
   const [totalRecords, setTotalRecords] = useState<number>(0);
 
   const accountTypes = [
-    { label: 'Checking', value: 'checking' },
-    { label: 'Savings', value: 'savings' },
-    { label: 'Investment', value: 'investment' }
+    { label: 'Checking', value: AccountType.Checking.toString() },
+    { label: 'Savings', value: AccountType.Savings.toString() },
+    { label: 'Investment', value: AccountType.Investment.toString() },
+    { label: 'Cash', value: AccountType.Cash.toString() }
   ];
 
   useEffect(() => {
