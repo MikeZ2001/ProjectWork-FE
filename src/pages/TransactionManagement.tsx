@@ -13,6 +13,8 @@ import {Transaction} from "@models/transaction";
 import TransactionService from "../services/transaction/transaction.service";
 import AccountService from "../services/account/account.service";
 import {TransactionType} from "types/models/transaction/enums/transaction.type";
+import {Category} from "@models/category";
+import CategoryService from "../services/category/category.service";
 
 const TransactionManagement: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -32,6 +34,8 @@ const TransactionManagement: React.FC = () => {
   const toast = useRef<Toast>(null);
   const [totalRecords, setTotalRecords] = useState<number>(0);
   const [transactionDate, setTransactionDate] = useState<Date|null|undefined>(new Date());
+  const [categories, setCategories] = useState<Category[]>([]);
+
 
   const transactionTypes = [
     { label: 'Deposit', value: 'deposit' },
@@ -95,6 +99,19 @@ const TransactionManagement: React.FC = () => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      const categories = await CategoryService.getCategories();
+      setCategories(categories.data);
+    } catch (error) {
+      console.error(`Failed to load categories`, error);
+      toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to load categories', life: 3000 });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const onPageChange = async (event: any) => {
     const newPage = Math.floor(event.first / event.rows) + 1;
     setRows(event.rows);
@@ -107,6 +124,7 @@ const TransactionManagement: React.FC = () => {
 
 
   const openNew = () => {
+    loadCategories();
     setTransaction({
       type: TransactionType.Withdrawal,
       amount: 0,
@@ -359,6 +377,21 @@ const TransactionManagement: React.FC = () => {
               className={submitted && !transaction.type ? 'p-invalid' : ''}
           />
           {submitted && !transaction.type && <small className="p-error">Transaction Type is required.</small>}
+        </div>
+
+        <div className="field">
+          <label htmlFor="category_id">Category</label>
+          <Dropdown
+              id="category_id"
+              value={transaction.category_id}
+              options={categories}
+              optionLabel="name"
+              optionValue="id"
+              onChange={(e) => onDropdownChange(e, 'category_id')}
+              placeholder="Select a category"
+              className={submitted && !transaction.category_id ? 'p-invalid' : ''}
+          />
+          {submitted && !transaction.category_id && <small className="p-error">Category is required.</small>}
         </div>
 
         <div className="field">
