@@ -113,9 +113,9 @@ const TransferDialog: React.FC<TransferDialogProps> = ({
     );
 
     const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('it-IT', {
             style: 'currency',
-            currency: 'USD'
+            currency: 'EUR'
         }).format(value);
     };
 
@@ -208,8 +208,8 @@ const TransferDialog: React.FC<TransferDialogProps> = ({
                     value={amount}
                     onValueChange={(e) => setAmount(e.value || 0)}
                     mode="currency"
-                    currency="USD"
-                    locale="en-US"
+                    currency="EUR"
+                    locale="it-IT"
                     className={classNames({ 'p-invalid': submitted && (!amount || amount <= 0) })}
                 />
                 {submitted && (!amount || amount <= 0) && <small className="p-error">Please enter a valid amount greater than zero.</small>}

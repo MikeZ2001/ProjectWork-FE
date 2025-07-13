@@ -5,6 +5,6 @@ export interface Transaction {
     account_id: number;
     amount: number;
     type: TransactionType
-    date: string;
+    transaction_date: string;
     description: string;
 }

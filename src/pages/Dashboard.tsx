@@ -101,7 +101,7 @@ const Dashboard: React.FC = () => {
     }
 
     const monthlyData = transactions.reduce((acc: Record<string, { balance: number, expenses: number }>, transaction) => {
-      const month = getMonthFromDate(transaction.date);
+      const month = getMonthFromDate(transaction.transaction_date);
 
       if (!acc[month]) {
         acc[month] = { balance: 0, expenses: 0 };
@@ -205,8 +205,8 @@ const Dashboard: React.FC = () => {
   };
 
   const transactionDateTemplate = (rowData: Transaction) => {
-    if (!rowData.date) return '';
-    return formatDate(rowData.date);
+    if (!rowData.transaction_date) return '';
+    return formatDate(rowData.transaction_date);
   };
 
   const handleCreateAccount = async () => {
@@ -236,7 +236,7 @@ const Dashboard: React.FC = () => {
           {
             ...newTransaction,
             account_id: selectedAccount.id,
-            date: new Date().toISOString().split('T')[0]
+            transaction_date: new Date().toISOString().split('T')[0]
           }
       );
 

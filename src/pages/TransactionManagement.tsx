@@ -35,8 +35,7 @@ const TransactionManagement: React.FC = () => {
 
   const transactionTypes = [
     { label: 'Deposit', value: 'deposit' },
-    { label: 'Withdrawal', value: 'withdrawal' },
-    { label: 'Transfer', value: 'transfer' }
+    { label: 'Withdrawal', value: 'withdrawal' }
   ];
 
   useEffect(() => {
@@ -52,8 +51,8 @@ const TransactionManagement: React.FC = () => {
   }, [selectedAccount]);
 
   useEffect(() => {
-    if (transaction && transaction.date) {
-      setTransactionDate(new Date(transaction.date));
+    if (transaction && transaction.transaction_date) {
+      setTransactionDate(new Date(transaction.transaction_date));
     } else {
       setTransactionDate(null);
     }
@@ -64,7 +63,7 @@ const TransactionManagement: React.FC = () => {
     setTransactionDate(picked);
     setTransaction(prev => ({
       ...prev,
-      date: picked.toISOString(),
+      transaction_date: picked.toISOString(),
     }));
   };
 
@@ -105,12 +104,14 @@ const TransactionManagement: React.FC = () => {
     }
   };
 
+
+
   const openNew = () => {
     setTransaction({
       type: TransactionType.Withdrawal,
       amount: 0,
       description: '',
-      date: new Date().toISOString()
+      transaction_date: new Date().toISOString()
     });
     setSubmitted(false);
     setTransactionDialog(true);
@@ -126,7 +127,7 @@ const TransactionManagement: React.FC = () => {
   };
 
   const editTransaction = (transaction: Transaction) => {
-    setTransaction({...transaction, date: transaction.date});
+    setTransaction({...transaction, transaction_date: transaction.transaction_date});
     setTransactionDialog(true);
   };
 
@@ -166,7 +167,7 @@ const TransactionManagement: React.FC = () => {
 
     try {
       if (transaction.id) {
-        transaction.date = transactionDate?.toISOString().split('T')[0];
+        transaction.transaction_date = transactionDate?.toISOString().split('T')[0];
         const updatedTransaction = await TransactionService.updateTransaction(
           selectedAccount.id,
           transaction.id,
@@ -184,7 +185,7 @@ const TransactionManagement: React.FC = () => {
         
         toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Transaction Updated', life: 3000 });
       } else {
-        transaction.date = transactionDate?.toISOString().split('T')[0];
+        transaction.transaction_date = transactionDate?.toISOString().split('T')[0];
         const createdTransaction = await TransactionService.createTransaction(
           selectedAccount.id,
           transaction
@@ -209,9 +210,9 @@ const TransactionManagement: React.FC = () => {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('it-IT', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'EUR'
     }).format(value);
   };
 
@@ -244,8 +245,8 @@ const TransactionManagement: React.FC = () => {
   };
 
   const dateTemplate = (rowData: Transaction) => {
-    if (!rowData.date) return '';
-    return new Date(rowData.date).toLocaleDateString();
+    if (!rowData.transaction_date) return '';
+    return new Date(rowData.transaction_date).toLocaleDateString();
   };
 
   const amountTemplate = (rowData: Transaction) => {
@@ -367,8 +368,8 @@ const TransactionManagement: React.FC = () => {
               value={transaction.amount}
               onValueChange={(e) => onAmountChange(e, 'amount')}
               mode="currency"
-              currency="USD"
-              locale="en-US"
+              currency="EUR"
+              locale="it-IT"
               className={submitted && !transaction.amount ? 'p-invalid' : ''}
           />
           {submitted && !transaction.amount && <small className="p-error">Amount is required.</small>}
