@@ -1,4 +1,5 @@
 import {TransactionType} from "@models/transaction/enums/transaction.type";
+import {Category} from "@models/category";
 
 export interface Transaction {
     id: number;
@@ -8,4 +9,5 @@ export interface Transaction {
     type: TransactionType
     transaction_date: string;
     description: string;
+    category: Category
 }

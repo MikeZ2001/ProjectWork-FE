@@ -91,6 +91,7 @@ const TransactionManagement: React.FC = () => {
       const transactions = await TransactionService.getTransactions(accountId, page, perPage);
       setTransactions(transactions.data);
       setTotalRecords(transactions.total)
+      setTotalRecords(transactions.total)
     } catch (error) {
       console.error(`Failed to load transactions for account ${accountId}`, error);
       toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to load transactions', life: 3000 });
@@ -145,7 +146,9 @@ const TransactionManagement: React.FC = () => {
   };
 
   const editTransaction = (transaction: Transaction) => {
-    setTransaction({...transaction, transaction_date: transaction.transaction_date});
+    loadCategories();
+    console.log(transaction);
+    setTransaction({...transaction});
     setTransactionDialog(true);
   };
 
@@ -186,6 +189,7 @@ const TransactionManagement: React.FC = () => {
     try {
       if (transaction.id) {
         transaction.transaction_date = transactionDate?.toISOString().split('T')[0];
+        transaction.category_id = transaction.category?.id;
         const updatedTransaction = await TransactionService.updateTransaction(
           selectedAccount.id,
           transaction.id,
@@ -204,10 +208,12 @@ const TransactionManagement: React.FC = () => {
         toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Transaction Updated', life: 3000 });
       } else {
         transaction.transaction_date = transactionDate?.toISOString().split('T')[0];
+        transaction.category_id = transaction.category?.id;
         const createdTransaction = await TransactionService.createTransaction(
           selectedAccount.id,
           transaction
         );
+
 
         setTransactions([createdTransaction, ...transactions]);
 
@@ -276,6 +282,10 @@ const TransactionManagement: React.FC = () => {
       </span>
     );
   };
+
+  const categoryTemplate = (transaction: Transaction) => {
+    return transaction.category.name ?? 'Uncategorized';
+  }
 
   const typeTemplate = (rowData: Transaction) => {
     const type = rowData.type || '';
@@ -348,11 +358,12 @@ const TransactionManagement: React.FC = () => {
         emptyMessage={selectedAccount ? "No transactions found for this account." : "Please select an account to view transactions."}
         className="p-datatable-sm"
       >
-        <Column field="id" header="ID" sortable style={{ minWidth: '5rem' }}></Column>
-        <Column field="type" header="Type" body={typeTemplate} sortable style={{ minWidth: '8rem' }}></Column>
-        <Column field="amount" header="Amount" body={amountTemplate} sortable style={{ minWidth: '8rem' }}></Column>
-        <Column field="date" header="Date" body={dateTemplate} sortable style={{ minWidth: '8rem' }}></Column>
-        <Column field="description" header="Description" sortable style={{ minWidth: '10rem' }}></Column>
+        <Column field="id" header="ID" style={{ minWidth: '5rem' }}></Column>
+        <Column field="type" header="Type" body={typeTemplate} style={{ minWidth: '8rem' }}></Column>
+        <Column field="category" header="Category" body={categoryTemplate} style={{ minWidth: '8rem' }}></Column>
+        <Column field="amount" header="Amount" body={amountTemplate} style={{ minWidth: '8rem' }}></Column>
+        <Column field="date" header="Date" body={dateTemplate} style={{ minWidth: '8rem' }}></Column>
+        <Column field="description" header="Description" style={{ minWidth: '10rem' }}></Column>
         <Column body={actionBodyTemplate} style={{ width: '8rem' }}></Column>
       </DataTable>
 
@@ -380,18 +391,17 @@ const TransactionManagement: React.FC = () => {
         </div>
 
         <div className="field">
-          <label htmlFor="category_id">Category</label>
+          <label htmlFor="category">Category</label>
           <Dropdown
-              id="category_id"
-              value={transaction.category_id}
+              id="category"
+              value={transaction.category}
               options={categories}
               optionLabel="name"
-              optionValue="id"
-              onChange={(e) => onDropdownChange(e, 'category_id')}
+              onChange={(e) => onDropdownChange(e, 'category')}
               placeholder="Select a category"
-              className={submitted && !transaction.category_id ? 'p-invalid' : ''}
+              className={submitted && !transaction.category ? 'p-invalid' : ''}
           />
-          {submitted && !transaction.category_id && <small className="p-error">Category is required.</small>}
+          {submitted && !transaction.category && <small className="p-error">Category is required.</small>}
         </div>
 
         <div className="field">

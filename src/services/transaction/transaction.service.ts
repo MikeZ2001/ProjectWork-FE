@@ -7,7 +7,7 @@ class TransactionService {
             const response = await api.get(`/v1/accounts/${accountId}/transactions?page=${page}&per_page=${per_page}`);
             return {
                 data: response.data.data,
-                total: response.data.total
+                total: response.data.meta.total
             };
         } catch (error) {
             console.error(`Error fetching transactions for account ${accountId}:`, error);
