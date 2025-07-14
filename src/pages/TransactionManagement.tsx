@@ -284,7 +284,7 @@ const TransactionManagement: React.FC = () => {
   };
 
   const categoryTemplate = (transaction: Transaction) => {
-    return transaction.category.name ?? 'Uncategorized';
+    return transaction.category?.name ?? 'Uncategorized';
   }
 
   const typeTemplate = (rowData: Transaction) => {
