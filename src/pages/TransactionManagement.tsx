@@ -15,6 +15,7 @@ import AccountService from "../services/account/account.service";
 import {TransactionType} from "types/models/transaction/enums/transaction.type";
 import {Category} from "@models/category";
 import CategoryService from "../services/category/category.service";
+import TransactionDialog from "../components/account/TransactionDialog";
 
 const TransactionManagement: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -35,6 +36,12 @@ const TransactionManagement: React.FC = () => {
   const [totalRecords, setTotalRecords] = useState<number>(0);
   const [transactionDate, setTransactionDate] = useState<Date|null|undefined>(new Date());
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const toLocalIsoDate = (d: Date) => {
+    const offsetMs = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() - offsetMs);
+    return local.toISOString().split('T')[0];
+  };
 
 
   const transactionTypes = [
@@ -188,7 +195,7 @@ const TransactionManagement: React.FC = () => {
 
     try {
       if (transaction.id) {
-        transaction.transaction_date = transactionDate?.toISOString().split('T')[0];
+        transaction.transaction_date = toLocalIsoDate(transactionDate!);
         transaction.category_id = transaction.category?.id;
         const updatedTransaction = await TransactionService.updateTransaction(
           selectedAccount.id,
@@ -207,7 +214,7 @@ const TransactionManagement: React.FC = () => {
         
         toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Transaction Updated', life: 3000 });
       } else {
-        transaction.transaction_date = transactionDate?.toISOString().split('T')[0];
+        transaction.transaction_date = toLocalIsoDate(transactionDate!);
         transaction.category_id = transaction.category?.id;
         const createdTransaction = await TransactionService.createTransaction(
           selectedAccount.id,
@@ -367,79 +374,20 @@ const TransactionManagement: React.FC = () => {
         <Column body={actionBodyTemplate} style={{ width: '8rem' }}></Column>
       </DataTable>
 
-      {/* Transaction Dialog */}
-      <Dialog
+      <TransactionDialog
           visible={transactionDialog}
-          style={{width: '450px'}}
-          header={transaction.id ? "Edit Transaction" : "New Transaction"}
-          modal
-          className="p-fluid"
+          transaction={transaction}
+          transactionDate={transactionDate}
+          transactionTypes={transactionTypes}
+          categories={categories}
+          submitted={submitted}
           footer={transactionDialogFooter}
           onHide={hideDialog}
-      >
-        <div className="field">
-          <label htmlFor="type">Transaction Type</label>
-          <Dropdown
-              id="type"
-              value={transaction.type}
-              options={transactionTypes}
-              onChange={(e) => onDropdownChange(e, 'type')}
-              placeholder="Select a Transaction Type"
-              className={submitted && !transaction.type ? 'p-invalid' : ''}
-          />
-          {submitted && !transaction.type && <small className="p-error">Transaction Type is required.</small>}
-        </div>
-
-        <div className="field">
-          <label htmlFor="category">Category</label>
-          <Dropdown
-              id="category"
-              value={transaction.category}
-              options={categories}
-              optionLabel="name"
-              onChange={(e) => onDropdownChange(e, 'category')}
-              placeholder="Select a category"
-              className={submitted && !transaction.category ? 'p-invalid' : ''}
-          />
-          {submitted && !transaction.category && <small className="p-error">Category is required.</small>}
-        </div>
-
-        <div className="field">
-          <label htmlFor="amount">Amount</label>
-          <InputNumber
-              id="amount"
-              value={transaction.amount}
-              onValueChange={(e) => onAmountChange(e, 'amount')}
-              mode="currency"
-              currency="EUR"
-              locale="it-IT"
-              className={submitted && !transaction.amount ? 'p-invalid' : ''}
-          />
-          {submitted && !transaction.amount && <small className="p-error">Amount is required.</small>}
-        </div>
-
-        <div className="field">
-          <label htmlFor="date">Date</label>
-          <Calendar
-              id="date"
-              value={transactionDate}
-              onChange={onCalendarChange}
-              dateFormat="yy-mm-dd"
-              showIcon
-              placeholder="YYYY-MM-DD"
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="description">Description</label>
-          <InputText
-              id="description"
-              value={transaction.description}
-              onChange={(e) => onInputChange(e, 'description')}
-              placeholder="Enter a description"
-          />
-        </div>
-      </Dialog>
+          onDropdownChange={onDropdownChange}
+          onAmountChange={onAmountChange}
+          onCalendarChange={onCalendarChange}
+          onInputChange={onInputChange}
+      />
 
       {/* Delete Transaction Dialog */}
       <Dialog

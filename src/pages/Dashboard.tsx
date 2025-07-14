@@ -6,7 +6,7 @@ import {Column} from 'primereact/column';
 import {Chart} from 'primereact/chart';
 import {Dialog} from 'primereact/dialog';
 import {InputText} from 'primereact/inputtext';
-import {Dropdown} from 'primereact/dropdown';
+import {Dropdown, DropdownChangeEvent} from 'primereact/dropdown';
 import {classNames} from 'primereact/utils';
 import {formatDate, getMonthFromDate} from '../utils/dateUtils';
 import {Account} from "@models/account";
@@ -16,6 +16,11 @@ import {TransactionType} from "types/models/transaction/enums/transaction.type";
 import AccountService from "../services/account/account.service";
 import TransactionService from "../services/transaction/transaction.service";
 import TransferDialog from "../components/Dashboard/TransferDialog";
+import {Category} from "@models/category";
+import CategoryService from "../services/category/category.service";
+import {CalendarViewChangeEvent} from "primereact/calendar";
+import {InputNumberValueChangeEvent} from "primereact/inputnumber";
+import TransactionDialog from "../components/account/TransactionDialog";
 
 const Dashboard: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -30,11 +35,7 @@ const Dashboard: React.FC = () => {
   const [newAccount, setNewAccount] = useState<Partial<Account>>({
     type: AccountType.Investment
   });
-  const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
-    type: TransactionType.Deposit,
-    amount: 0,
-    description: ''
-  });
+
   const [submitted, setSubmitted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState<number>(10);
@@ -47,6 +48,26 @@ const Dashboard: React.FC = () => {
     { label: 'Cash', value: AccountType.Cash.toString() }
   ];
 
+  const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
+    type: TransactionType.Deposit,
+    amount: 0,
+    description: '',
+    category: undefined
+  });
+
+  const toLocalIsoDate = (d: Date) => {
+    const offsetMs = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() - offsetMs);
+    return local.toISOString().split('T')[0];
+  };
+
+  const [transactionDate, setTransactionDate] = useState<Date | null>(new Date());
+  const [transactionTypes] = useState([
+    { label: 'Deposit', value: TransactionType.Deposit },
+    { label: 'Withdrawal', value: TransactionType.Withdrawal }
+  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
   useEffect(() => {
     loadAccounts();
   }, []);
@@ -58,6 +79,18 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedAccount]);
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await CategoryService.getCategories();
+        setCategories(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadCategories();
+  }, []);
+
   const onPageChange = async (event: any) => {
     const newPage = Math.floor(event.first / event.rows) + 1;
     setRows(event.rows);
@@ -65,6 +98,22 @@ const Dashboard: React.FC = () => {
     if (selectedAccount?.id) {
       await loadTransactions(selectedAccount.id, newPage, event.rows)
     }
+  };
+
+  const onDropdownChange = (e: DropdownChangeEvent, field: keyof Transaction) => {
+    setNewTransaction(tx => ({ ...tx, [field]: e.value }));
+  };
+
+  const onAmountChange = (e: InputNumberValueChangeEvent, field: keyof Transaction) => {
+    setNewTransaction(tx => ({ ...tx, [field]: e.value }));
+  };
+
+  const onCalendarChange = (e: CalendarViewChangeEvent) => {
+    setTransactionDate(e.value as Date);
+  };
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof Transaction) => {
+    setNewTransaction(tx => ({ ...tx, [field]: e.target.value }));
   };
 
 
@@ -92,6 +141,11 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Failed to load transactions', error);
     }
+  };
+
+  const dateTemplate = (rowData: Transaction) => {
+    if (!rowData.transaction_date) return '';
+    return new Date(rowData.transaction_date).toLocaleDateString();
   };
 
   const prepareChartData = () => {
@@ -185,6 +239,10 @@ const Dashboard: React.FC = () => {
     );
   };
 
+  const categoryTemplate = (transaction: Transaction) => {
+    return transaction.category?.name ?? 'Uncategorized';
+  }
+
   const actionTemplate = (rowData: Account) => {
     return (
         <div className="flex gap-2">
@@ -236,7 +294,8 @@ const Dashboard: React.FC = () => {
           {
             ...newTransaction,
             account_id: selectedAccount.id,
-            transaction_date: new Date().toISOString().split('T')[0]
+            category_id: newTransaction.category?.id,
+            transaction_date: toLocalIsoDate(transactionDate!)
           }
       );
 
@@ -362,10 +421,11 @@ const Dashboard: React.FC = () => {
                           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} accounts"
                           rowsPerPageOptions={[5, 10, 25]}
                       >
-                        <Column field="date" header="Date" body={transactionDateTemplate} sortable />
-                        <Column field="type" header="Type" sortable />
-                        <Column field="amount" header="Amount" body={transactionAmountTemplate} sortable />
-                        <Column field="description" header="Description" sortable />
+                        <Column field="type" header="Type" />
+                        <Column field="category" header="Category" body={categoryTemplate} style={{ minWidth: '8rem' }}></Column>
+                        <Column field="amount" header="Amount" body={transactionAmountTemplate} />
+                        <Column field="date" header="Date" body={transactionDateTemplate} />
+                        <Column field="description" header="Description" />
                       </DataTable>
                   )}
                 </Card>
@@ -384,26 +444,21 @@ const Dashboard: React.FC = () => {
           </div>
         </Dialog>
 
-        <Dialog visible={showTransactionDialog} style={{ width: '450px' }}
-                header={`Create New ${newTransaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
-                footer={transactionDialogFooter} onHide={() => setShowTransactionDialog(false)}>
-
-          <div className="field mt-3">
-            <label htmlFor="amount" className="font-bold">Amount</label>
-            <InputText id="amount" type="number" keyfilter="money"
-                       value={newTransaction.amount?.toString() || ''}
-                       onChange={(e) => setNewTransaction({ ...newTransaction, amount: parseFloat(e.target.value) })}
-                       className={classNames({ 'p-invalid': submitted && (!newTransaction.amount || newTransaction.amount <= 0) })} />
-            {submitted && (!newTransaction.amount || newTransaction.amount <= 0) &&
-                <small className="p-error">Please enter a valid amount greater than zero.</small>}
-          </div>
-
-          <div className="field mt-3">
-            <label htmlFor="description" className="font-bold">Description</label>
-            <InputText id="description" value={newTransaction.description}
-                       onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })} />
-          </div>
-        </Dialog>
+        <TransactionDialog
+            visible={showTransactionDialog}
+            transaction={newTransaction}
+            transactionDate={transactionDate}
+            transactionTypes={transactionTypes}
+            categories={categories}
+            submitted={submitted}
+            footer={transactionDialogFooter}
+            onHide={() => setShowTransactionDialog(false)}
+            onDropdownChange={onDropdownChange}
+            onAmountChange={onAmountChange}
+            onCalendarChange={onCalendarChange}
+            onInputChange={onInputChange}
+            hideTypeSelector={true}
+        />
 
         <TransferDialog
             visible={showTransferDialog}
