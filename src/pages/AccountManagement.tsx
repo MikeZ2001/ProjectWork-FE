@@ -42,6 +42,20 @@ const AccountManagement: React.FC = () => {
         }
     }, [closeDate]);
 
+    useEffect(() => {
+        if (account.open_date) {
+            setOpenDate(new Date(account.open_date));
+        } else {
+            setOpenDate(new Date());
+        }
+    }, [account]);
+
+    const toLocalIsoDate = (d: Date) => {
+        const offsetMs = d.getTimezoneOffset() * 60000;
+        const local = new Date(d.getTime() - offsetMs);
+        return local.toISOString().split('T')[0];
+    };
+
     const hideDialog = () => {
         setSubmitted(false);
         setAccountDialog(false);
@@ -168,8 +182,11 @@ const AccountManagement: React.FC = () => {
         }
 
         try {
-            account.open_date = openDate?.toISOString().split('T')[0];
-            account.close_date = closeDate?.toISOString().split('T')[0] ?? null;
+            account.open_date = toLocalIsoDate(openDate!)
+
+            if (closeDate) {
+                account.close_date = toLocalIsoDate(closeDate!)
+            }
 
             const newAccount = await AccountService.createAccount(account);
             setAccounts([...accounts, newAccount]);
@@ -191,8 +208,11 @@ const AccountManagement: React.FC = () => {
         }
 
         try {
-            account.open_date = openDate?.toISOString().split('T')[0];
-            account.close_date = closeDate?.toISOString().split('T')[0] ?? null;
+            account.open_date = toLocalIsoDate(openDate!)
+            if (closeDate) {
+                account.close_date = toLocalIsoDate(closeDate!)
+            }
+
 
             const updatedAccount = await AccountService.updateAccount(account.id, account);
             setAccounts(accounts.map(a => a.id === updatedAccount.id ? updatedAccount : a));
