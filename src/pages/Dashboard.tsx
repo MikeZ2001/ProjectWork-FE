@@ -3,10 +3,7 @@ import {Card} from 'primereact/card';
 import {Button} from 'primereact/button';
 import {DataTable} from 'primereact/datatable';
 import {Column} from 'primereact/column';
-import {Chart} from 'primereact/chart';
 import {Dialog} from 'primereact/dialog';
-import {InputText} from 'primereact/inputtext';
-import {Dropdown, DropdownChangeEvent} from 'primereact/dropdown';
 import {classNames} from 'primereact/utils';
 import {formatDate, getMonthFromDate} from '../utils/dateUtils';
 import {Account} from "@models/account";
@@ -16,19 +13,121 @@ import {TransactionType} from "types/models/transaction/enums/transaction.type";
 import AccountService from "../services/account/account.service";
 import TransactionService from "../services/transaction/transaction.service";
 import TransferDialog from "../components/Dashboard/TransferDialog";
-import {Category} from "@models/category";
-import CategoryService from "../services/category/category.service";
 import {CalendarViewChangeEvent} from "primereact/calendar";
 import {InputNumberValueChangeEvent} from "primereact/inputnumber";
 import TransactionDialog from "../components/account/TransactionDialog";
+import {Dropdown, DropdownChangeEvent} from "primereact/dropdown";
+import { useAccounts } from '../hooks/useAccounts';
+import { useTransactions } from '../hooks/useTransactions';
+import { useCategories } from '../hooks/useCategories';
+import { useAllTransactions } from '../hooks/useAllTransactions';
+
+const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+const monthOptions = [{ label: 'All', value: 'all' }, ...allMonths.map(m => ({ label: m.toString().padStart(2, '0'), value: m }))];
+
+const getMonthName = (month: number | 'all') => {
+  if (month === 'all') return 'All';
+  const found = monthNames.find(m => m.value === month);
+  return found ? found.label : '';
+};
+
+const now = new Date();
+const currentMonth = now.getMonth() + 1;
+const currentYear = now.getFullYear();
+
+const getFilterLabel = (year: number | 'all', month: number | 'all') => {
+  if (year === 'all' && month === 'all') return ' (All Time)';
+  if (year === currentYear && month === currentMonth) return ' (This Month)';
+  let label = '';
+  if (year !== 'all') label += `Year: ${year}`;
+  if (month !== 'all') label += (label ? ', ' : '') + `Month: ${getMonthName(month)}`;
+  return label ? ` (${label})` : '';
+};
+
+const getChartTitle = (base: string, year: number | 'all', month: number | 'all') => {
+  return base + getFilterLabel(year, month);
+};
+
+const monthNames = [
+  { label: 'All', value: 'all' },
+  { label: 'Jan', value: 1 },
+  { label: 'Feb', value: 2 },
+  { label: 'Mar', value: 3 },
+  { label: 'Apr', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'Jun', value: 6 },
+  { label: 'Jul', value: 7 },
+  { label: 'Aug', value: 8 },
+  { label: 'Sep', value: 9 },
+  { label: 'Oct', value: 10 },
+  { label: 'Nov', value: 11 },
+  { label: 'Dec', value: 12 }
+];
 
 const Dashboard: React.FC = () => {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { accounts, loading: accountsLoading, setAccounts } = useAccounts();
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [chartData, setChartData] = useState({});
-  const [chartOptions, setChartOptions] = useState({});
+
+  const { categories } = useCategories();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rows, setRows] = useState<number>(10);
+  const {
+    transactions,
+    totalRecords,
+    setTransactions,
+    reloadTransactions
+  } = useTransactions(selectedAccount?.id, currentPage, rows);
+
+  const { transactions: allTransactions, loading: allTxLoading } = useAllTransactions(selectedAccount?.id);
+
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(currentMonth);
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(currentYear);
+
+  const years = Array.from(new Set(allTransactions.map((t: Transaction) => new Date(t.transaction_date).getFullYear()))) as number[];
+  years.sort((a, b) => a - b);
+  const yearOptions = [{ label: 'All', value: 'all' }, ...years.map(y => ({ label: y.toString(), value: y }))];
+
+  const filteredTransactions = allTransactions.filter((t: Transaction) => {
+    const d = new Date(t.transaction_date);
+    const yearMatch = selectedYear === 'all' || d.getFullYear() === selectedYear;
+    const monthMatch = selectedMonth === 'all' || (d.getMonth() + 1) === selectedMonth;
+    return yearMatch && monthMatch;
+  });
+
+  const incomeThisMonth = filteredTransactions
+    .filter(t => t.type === TransactionType.Deposit)
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const expensesThisMonth = filteredTransactions
+    .filter(t => t.type === TransactionType.Withdrawal)
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const netSavingsThisMonth = (Number(incomeThisMonth) || 0) - (Number(expensesThisMonth) || 0);
+
+  const topSpendingCategories = (() => {
+    const catMap: Record<string, number> = {};
+    filteredTransactions
+      .filter(t => t.type === TransactionType.Withdrawal)
+      .forEach(t => {
+        const name = t.category?.name || 'Uncategorized';
+        catMap[name] = (catMap[name] || 0) + (Number(t.amount) || 0);
+      });
+    return Object.entries(catMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+  })();
+  const topIncomeSources = (() => {
+    const catMap: Record<string, number> = {};
+    filteredTransactions
+      .filter(t => t.type === TransactionType.Deposit)
+      .forEach(t => {
+        const name = t.category?.name || 'Uncategorized';
+        catMap[name] = (catMap[name] || 0) + (Number(t.amount) || 0);
+      });
+    return Object.entries(catMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+  })();
+
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [showTransactionDialog, setShowTransactionDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -37,9 +136,49 @@ const Dashboard: React.FC = () => {
   });
 
   const [submitted, setSubmitted] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rows, setRows] = useState<number>(10);
-  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
+    type: TransactionType.Deposit,
+    amount: 0,
+    description: '',
+    category: undefined
+  });
+
+  const [transactionDate, setTransactionDate] = useState<Date | null | undefined>(new Date());
+  const [transactionTypes] = useState([
+    { label: 'Deposit', value: TransactionType.Deposit },
+    { label: 'Withdrawal', value: TransactionType.Withdrawal }
+  ]);
+
+  const toLocalIsoDate = (d: Date) => {
+    const offsetMs = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() - offsetMs);
+    return local.toISOString().split('T')[0];
+  };
+
+  const onPageChange = async (event: any) => {
+    const newPage = Math.floor(event.first / event.rows) + 1;
+    setRows(event.rows);
+    setCurrentPage(newPage);
+    if (selectedAccount?.id) {
+      await reloadTransactions(selectedAccount.id, newPage, event.rows)
+    }
+  };
+
+  const onDropdownChange = (e: DropdownChangeEvent, field: keyof Transaction) => {
+    setNewTransaction(transaction => ({ ...transaction, [field]: e.value }));
+  };
+
+  const onAmountChange = (e: InputNumberValueChangeEvent, field: keyof Transaction) => {
+    setNewTransaction(transaction => ({ ...transaction, [field]: e.value }));
+  };
+
+  const onCalendarChange = (e: CalendarViewChangeEvent) => {
+    setTransactionDate(e.value as Date);
+  };
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof Transaction) => {
+    setNewTransaction(transaction => ({ ...transaction, [field]: e.target.value }));
+  };
 
   const accountTypes = [
     { label: 'Checking', value: AccountType.Checking.toString() },
@@ -48,225 +187,6 @@ const Dashboard: React.FC = () => {
     { label: 'Cash', value: AccountType.Cash.toString() }
   ];
 
-  const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
-    type: TransactionType.Deposit,
-    amount: 0,
-    description: '',
-    category: undefined
-  });
-
-  const toLocalIsoDate = (d: Date) => {
-    const offsetMs = d.getTimezoneOffset() * 60000;
-    const local = new Date(d.getTime() - offsetMs);
-    return local.toISOString().split('T')[0];
-  };
-
-  const [transactionDate, setTransactionDate] = useState<Date | null>(new Date());
-  const [transactionTypes] = useState([
-    { label: 'Deposit', value: TransactionType.Deposit },
-    { label: 'Withdrawal', value: TransactionType.Withdrawal }
-  ]);
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    loadAccounts();
-  }, []);
-
-  useEffect(() => {
-    if (selectedAccount) {
-      loadTransactions(selectedAccount.id);
-      prepareChartData();
-    }
-  }, [selectedAccount]);
-
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const res = await CategoryService.getCategories();
-        setCategories(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    loadCategories();
-  }, []);
-
-  const onPageChange = async (event: any) => {
-    const newPage = Math.floor(event.first / event.rows) + 1;
-    setRows(event.rows);
-    setCurrentPage(newPage);
-    if (selectedAccount?.id) {
-      await loadTransactions(selectedAccount.id, newPage, event.rows)
-    }
-  };
-
-  const onDropdownChange = (e: DropdownChangeEvent, field: keyof Transaction) => {
-    setNewTransaction(tx => ({ ...tx, [field]: e.value }));
-  };
-
-  const onAmountChange = (e: InputNumberValueChangeEvent, field: keyof Transaction) => {
-    setNewTransaction(tx => ({ ...tx, [field]: e.value }));
-  };
-
-  const onCalendarChange = (e: CalendarViewChangeEvent) => {
-    setTransactionDate(e.value as Date);
-  };
-
-  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof Transaction) => {
-    setNewTransaction(tx => ({ ...tx, [field]: e.target.value }));
-  };
-
-
-  const loadAccounts = async () => {
-    try {
-      setLoading(true);
-      const accounts = await AccountService.getAccounts();
-      setAccounts(accounts.data);
-
-      if (accounts.data.length > 0 && !selectedAccount) {
-        setSelectedAccount(accounts.data[0]);
-      }
-    } catch (error) {
-      console.error('Failed to load accounts', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadTransactions = async (accountId: number, page = 1, perPage = 10) => {
-    try {
-      const transactions = await TransactionService.getTransactions(accountId, page, perPage);
-      setTransactions(transactions.data);
-      setTotalRecords(transactions.total);
-    } catch (error) {
-      console.error('Failed to load transactions', error);
-    }
-  };
-
-  const dateTemplate = (rowData: Transaction) => {
-    if (!rowData.transaction_date) return '';
-    return new Date(rowData.transaction_date).toLocaleDateString();
-  };
-
-  const prepareChartData = () => {
-    if (!transactions.length) {
-      setChartData({});
-      return;
-    }
-
-    const monthlyData = transactions.reduce((acc: Record<string, { balance: number, expenses: number }>, transaction) => {
-      const month = getMonthFromDate(transaction.transaction_date);
-
-      if (!acc[month]) {
-        acc[month] = { balance: 0, expenses: 0 };
-      }
-
-      if (transaction.type === 'deposit' || transaction.type === 'transfer') {
-        acc[month].balance += transaction.amount;
-      } else if (transaction.type === 'withdrawal') {
-        acc[month].expenses += transaction.amount;
-      }
-
-      return acc;
-    }, {});
-
-    const months = Object.keys(monthlyData);
-    const labels = months.slice(-6);
-
-    const balanceData = labels.map(month => monthlyData[month].balance);
-    const expensesData = labels.map(month => monthlyData[month].expenses);
-
-    const data = {
-      labels,
-      datasets: [
-        {
-          label: 'Income',
-          data: balanceData,
-          fill: false,
-          borderColor: '#4caf50',
-          tension: 0.4
-        },
-        {
-          label: 'Expenses',
-          data: expensesData,
-          fill: false,
-          borderColor: '#f44336',
-          tension: 0.4
-        }
-      ]
-    };
-
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top'
-        },
-        title: {
-          display: true,
-          text: 'Account Activity'
-        }
-      }
-    };
-
-    setChartData(data);
-    setChartOptions(options);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('it-IT', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(value);
-  };
-
-  const balanceTemplate = (rowData: Account) => {
-    return formatCurrency(rowData.balance);
-  };
-
-  const accountTypeTemplate = (rowData: Account) => {
-    const accountType = rowData.type || (rowData as any).type || 'unknown';
-    return accountType.charAt(0).toUpperCase() + accountType.slice(1);
-  };
-
-  const statusTemplate = (rowData: Account) => {
-    const status = rowData.status || (rowData as any).status || 'unknown';
-    return (
-        <span className={`p-tag p-tag-${status === 'active' ? 'success' : 'danger'}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
-  };
-
-  const categoryTemplate = (transaction: Transaction) => {
-    return transaction.category?.name ?? 'Uncategorized';
-  }
-
-  const actionTemplate = (rowData: Account) => {
-    return (
-        <div className="flex gap-2">
-          <Button icon="pi pi-eye" className="p-button-rounded p-button-info p-button-sm"
-                  onClick={() => setSelectedAccount(rowData)} />
-        </div>
-    );
-  };
-
-  const transactionAmountTemplate = (rowData: Transaction) => {
-    const isDeposit = rowData.type === 'deposit';
-    const amount = rowData.amount || 0;
-    return (
-        <span className={isDeposit ? 'text-green-500' : 'text-red-500'}>
-        {isDeposit ? '+' : '-'} {formatCurrency(Math.abs(amount))}
-      </span>
-    );
-  };
-
-  const transactionDateTemplate = (rowData: Transaction) => {
-    if (!rowData.transaction_date) return '';
-    return formatDate(rowData.transaction_date);
-  };
-
   const handleCreateAccount = async () => {
     setSubmitted(true);
 
@@ -274,7 +194,7 @@ const Dashboard: React.FC = () => {
 
     try {
       const createdAccount = await AccountService.createAccount(newAccount);
-      setAccounts(prev => [...prev, createdAccount]);
+      setAccounts((prev: Account[]) => [...prev, createdAccount]);
       setShowAccountDialog(false);
       setNewAccount({ type: AccountType.Checking });
       setSubmitted(false);
@@ -299,11 +219,11 @@ const Dashboard: React.FC = () => {
           }
       );
 
-      setTransactions(prev => [createdTransaction, ...prev]);
+      setTransactions((prev: Transaction[]) => [createdTransaction, ...prev]);
 
       const updatedAccount = await AccountService.getAccountById(selectedAccount.id);
 
-      setAccounts(prev => prev.map(acc =>
+      setAccounts((prev: Account[]) => prev.map((acc: Account) =>
           acc.id === updatedAccount.id ? updatedAccount : acc
       ));
 
@@ -314,6 +234,16 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Failed to create transaction', error);
     }
+  };
+
+  const amountTemplate = (rowData: Transaction) => {
+    const isDeposit = rowData.type === 'deposit';
+    const amount = rowData.amount || 0;
+    return (
+        <span className={isDeposit ? 'text-green-500' : 'text-red-500'}>
+        {isDeposit ? '+' : '-'} {formatCurrency(Math.abs(amount))}
+      </span>
+    );
   };
 
   const accountDialogFooter = (
@@ -330,116 +260,238 @@ const Dashboard: React.FC = () => {
       </>
   );
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value);
+  };
+
+  const balanceTemplate = (rowData: Account | null | undefined) => {
+    return formatCurrency(rowData?.balance ?? 0);
+  };
+
+  const accountTypeTemplate = (rowData: Account | null | undefined) => {
+    if (!rowData || !rowData.type) return '';
+    const accountType = rowData.type || 'unknown';
+    return accountType.charAt(0).toUpperCase() + accountType.slice(1);
+  };
+
+  const statusTemplate = (rowData: Account | null | undefined) => {
+    if (!rowData || !rowData.status) return '';
+    const status = rowData.status || 'unknown';
+    return (
+      <span className={`p-tag p-tag-${status === 'active' ? 'success' : 'danger'}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  const categoryTemplate = (transaction: Transaction | null | undefined) => {
+    if (!transaction || !transaction.category) return 'Uncategorized';
+    return transaction.category.name ?? 'Uncategorized';
+  };
+
+  const actionTemplate = (rowData: Account | null | undefined) => {
+    if (!rowData) return null;
+    return (
+      <div className="flex gap-2">
+        <Button icon="pi pi-eye" className="p-button-rounded p-button-info p-button-sm"
+                onClick={() => setSelectedAccount(rowData)} />
+      </div>
+    );
+  };
+
+  const transactionAmountTemplate = (rowData: Transaction | null | undefined) => {
+    if (!rowData || typeof rowData.amount !== 'number' || !rowData.type) return '';
+    const isDeposit = rowData.type === 'deposit';
+    const amount = rowData.amount || 0;
+    return (
+      <span className={isDeposit ? 'text-green-500' : 'text-red-500'}>
+        {isDeposit ? '+' : '-'} {formatCurrency(Math.abs(amount))}
+      </span>
+    );
+  };
+
+  const transactionDateTemplate = (rowData: Transaction | null | undefined) => {
+    if (!rowData || !rowData.transaction_date) return '';
+    return formatDate(rowData.transaction_date);
+  };
+
+  const getRunningBalances = (transactions: Transaction[], startingBalance: number) => {
+
+    let balance = startingBalance;
+    return transactions.map(t => {
+      const bal = balance;
+      if (t.type === TransactionType.Withdrawal) {
+        balance += Number(t.amount) || 0;
+      } else if (t.type === TransactionType.Deposit) {
+        balance -= Number(t.amount) || 0;
+      }
+
+      if (t.type === TransactionType.Withdrawal) {
+        balance -= Number(t.amount) || 0;
+      } else if (t.type === TransactionType.Deposit) {
+        balance += Number(t.amount) || 0;
+      }
+      return bal;
+    });
+  };
+
   return (
-      <div className="grid">
-        <div className="col-12">
-          <div className="flex justify-content-between align-items-center mb-3">
-            <h1 className="m-0">Dashboard</h1>
-          </div>
-        </div>
+    <div className="grid">
+      <div className="col-12 md:col-6 lg:col-4">
+        <Card title="My Accounts" className="h-full">
+          {accounts.length === 0 ? (
+            <div className="p-4 text-center">
+              <p>No accounts found. Create your first account to get started.</p>
+            </div>
+          ) : (
+            <DataTable value={accounts} loading={accountsLoading}
+                       selectionMode="single" selection={selectedAccount}
+                       onSelectionChange={(e) => setSelectedAccount(e.value as Account)}
+                       responsiveLayout="scroll">
+              <Column field="name" header="Name" />
+              <Column field="accountType" header="Type" body={accountTypeTemplate} />
+              <Column field="balance" header="Balance" body={balanceTemplate} />
+              <Column field="status" header="Status" body={statusTemplate} />
 
-        <div className="col-12 lg:col-4">
-          <Card title="My Accounts" className="h-full">
-            {accounts.length === 0 ? (
-                <div className="p-4 text-center">
-                  <p>No accounts found. Create your first account to get started.</p>
-                </div>
-            ) : (
-                <DataTable value={accounts} loading={loading}
-                           selectionMode="single" selection={selectedAccount}
-                           onSelectionChange={(e) => setSelectedAccount(e.value as Account)}
-                           responsiveLayout="scroll">
-                  <Column field="accountType" header="Type" body={accountTypeTemplate} />
-                  <Column field="balance" header="Balance" body={balanceTemplate} />
-                  <Column field="status" header="Status" body={statusTemplate} />
-                  <Column body={actionTemplate} style={{ width: '6rem' }} />
-                </DataTable>
-            )}
-          </Card>
-        </div>
+            </DataTable>
+          )}
+        </Card>
+      </div>
 
-        {selectedAccount && (
-            <>
-              <div className="col-12 lg:col-8">
-                <Card title={`${accountTypeTemplate(selectedAccount)} Account Details`}
-                      subTitle={`Account #${String(selectedAccount.id).substring(0, 8)}`}
-                      className="h-full">
-                  <div className="grid">
-                    <div className="col-12 md:col-6">
-                      <div className="mb-3">
-                        <p className="text-lg font-bold">Current Balance</p>
-                        <p className="text-3xl text-primary">{formatCurrency(selectedAccount.balance)}</p>
-                      </div>
-                      <div className="mb-3">
-                        <p className="text-lg font-bold">Available Actions</p>
-                        <div className="flex gap-2 mt-2">
-                          <Button label="Deposit" icon="pi pi-arrow-down"
-                                  onClick={() => {
-                                    setNewTransaction({ type: TransactionType.Deposit, amount: 0, description: '' });
-                                    setShowTransactionDialog(true);
-                                  }} />
-                          <Button label="Withdraw" icon="pi pi-arrow-up" className="p-button-secondary"
-                                  onClick={() => {
-                                    setNewTransaction({ type: TransactionType.Withdrawal, amount: 0, description: '' });
-                                    setShowTransactionDialog(true);
-                                  }} />
-                          <Button label="Transfer" icon="pi pi-send" className="p-button-info"
-                                  onClick={() => setShowTransferDialog(true)}
-                                  disabled={accounts.length < 2} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <div style={{ height: '200px' }}>
-                        <Chart type="line" data={chartData} options={chartOptions} />
-                      </div>
-                    </div>
+
+      {selectedAccount && (
+        <>
+
+          <div className="col-12 md:col-6 lg:col-8">
+            <div className="grid">
+
+              <div className="col-12 md:col-6">
+                <Card title="Filtri">
+                  <div className="flex flex-column gap-2 align-items-start">
+                    <span>Year:</span>
+                    <Dropdown value={selectedYear} options={yearOptions} onChange={e => setSelectedYear(e.value)} optionLabel="label" className="w-10rem mb-2" />
+                    <span>Month:</span>
+                    <Dropdown value={selectedMonth} options={monthNames} onChange={e => setSelectedMonth(e.value)} optionLabel="label" className="w-10rem mb-2" />
+                    <Button label="Clear" icon="pi pi-times" className="p-button-text mt-2" onClick={() => { setSelectedYear(currentYear); setSelectedMonth(currentMonth); }} />
                   </div>
                 </Card>
               </div>
 
-              <div className="col-12">
-                <Card title="Recent Transactions"
-                      subTitle={`for ${accountTypeTemplate(selectedAccount)} Account #${String(selectedAccount.id).substring(0, 8)}`}>
-                  {transactions.length === 0 ? (
-                      <div className="p-4 text-center">
-                        <p>No transactions found for this account.</p>
-                      </div>
-                  ) : (
-                      <DataTable
-                          value={transactions}
-                          lazy
-                          paginator
-                          first={(currentPage - 1) * rows}
-                          rows={rows}
-                          totalRecords={totalRecords}
-                          onPage={onPageChange}
-                          loading={loading}
-                          dataKey="id"
-                          emptyMessage="No transactions found"
-                          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} accounts"
-                          rowsPerPageOptions={[5, 10, 25]}
-                      >
-                        <Column field="type" header="Type" />
-                        <Column field="category" header="Category" body={categoryTemplate} style={{ minWidth: '8rem' }}></Column>
-                        <Column field="amount" header="Amount" body={transactionAmountTemplate} />
-                        <Column field="date" header="Date" body={transactionDateTemplate} />
-                        <Column field="description" header="Description" />
-                      </DataTable>
-                  )}
+              <div className="col-12 md:col-6">
+                <Card title={getChartTitle('Top Categories', selectedYear, selectedMonth)}>
+                  <div className="mb-3">
+                    <strong>Top Spending Categories</strong>
+                    {topSpendingCategories.length === 0 ? (
+                      <div className="text-center">No spending for this filter.</div>
+                    ) : (
+                      <ul className="list-none p-0 m-0">
+                        {topSpendingCategories.map(([cat, amt]) => (
+                          <li key={cat} className="flex justify-content-between py-1 border-bottom-1 border-gray-200">
+                            <span>{cat}</span>
+                            <span className="font-bold">{formatCurrency(amt)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div>
+                    <strong>Top Income Sources</strong>
+                    {topIncomeSources.length === 0 ? (
+                      <div className="text-center">No income for this filter.</div>
+                    ) : (
+                      <ul className="list-none p-0 m-0">
+                        {topIncomeSources.map(([cat, amt]) => (
+                          <li key={cat} className="flex justify-content-between py-1 border-bottom-1 border-gray-200">
+                            <span>{cat}</span>
+                            <span className="font-bold">{formatCurrency(amt)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </Card>
               </div>
-            </>
-        )}
+            </div>
+          </div>
 
-        <Dialog visible={showAccountDialog} style={{ width: '450px' }} header="Create New Account"
+          <div className="col-12 md:col-6 lg:col-8">
+            <div className="grid h-full">
+              <div className="col-12 md:col-4 flex">
+                <Card title={getChartTitle('Income', selectedYear, selectedMonth)} className="w-full">
+                  <div className="text-2xl font-bold text-green-600 mb-1">{formatCurrency(incomeThisMonth)}</div>
+                  <div className={incomeThisMonth > 0 ? 'text-green-500' : incomeThisMonth < 0 ? 'text-red-500' : ''}>
+                  </div>
+                </Card>
+              </div>
+              <div className="col-12 md:col-4 flex">
+                <Card title={getChartTitle('Expenses', selectedYear, selectedMonth)} className="w-full">
+                  <div className="text-2xl font-bold text-red-600 mb-1">{formatCurrency(expensesThisMonth)}</div>
+                  <div className={expensesThisMonth > 0 ? 'text-red-500' : expensesThisMonth < 0 ? 'text-green-500' : ''}>
+                  </div>
+                </Card>
+              </div>
+              <div className="col-12 md:col-4 flex">
+                <Card title={getChartTitle('Net Savings', selectedYear, selectedMonth)} className="w-full">
+                  <div className={netSavingsThisMonth >= 0 ? 'text-2xl font-bold text-green-700' : 'text-2xl font-bold text-red-700'}>
+                    {formatCurrency(netSavingsThisMonth)}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-12">
+            <Card title={getChartTitle('Recent Transactions', selectedYear, selectedMonth)}
+                  subTitle={`for ${selectedAccount.name} Account #${String(selectedAccount?.id).substring(0, 8)}`}>
+              {filteredTransactions.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p>No transactions found for this account.</p>
+                  </div>
+              ) : (
+                  (() => {
+                    const startingBalance = selectedAccount?.balance || 0;
+                    const runningBalances = getRunningBalances(filteredTransactions, startingBalance);
+                    return (
+                      <DataTable
+                        value={filteredTransactions}
+                        lazy
+                        paginator
+                        first={(currentPage - 1) * rows}
+                        rows={rows}
+                        totalRecords={totalRecords}
+                        onPage={onPageChange}
+                        loading={accountsLoading}
+                        dataKey="id"
+                        emptyMessage="No transactions found"
+                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} transactions"
+                        rowsPerPageOptions={[5, 10, 25]}
+                      >
+                        <Column field="type" header="Type"/>
+                        <Column field="category" header="Category" body={categoryTemplate} style={{minWidth: '8rem'}}/>
+                        <Column field="amount" header="Amount" body={amountTemplate} style={{ minWidth: '8rem' }}></Column>
+                        <Column field="date" header="Date" body={transactionDateTemplate}/>
+                        <Column field="description" header="Description"/>
+                      </DataTable>
+                    );
+                  })()
+              )}
+            </Card>
+          </div>
+        </>
+      )}
+
+        <Dialog visible={showAccountDialog} style={{width: '450px'}} header="Create New Account"
                 footer={accountDialogFooter} onHide={() => setShowAccountDialog(false)}>
           <div className="field">
             <label htmlFor="accountType" className="font-bold">Account Type</label>
             <Dropdown id="accountType" value={newAccount.type} options={accountTypes}
-                      onChange={(e) => setNewAccount({ ...newAccount, type: e.value })}
-                      placeholder="Select Account Type" className={classNames({ 'p-invalid': submitted && !newAccount.type })} />
+                      onChange={(e) => setNewAccount({...newAccount, type: e.value})}
+                      placeholder="Select Account Type"
+                      className={classNames({'p-invalid': submitted && !newAccount.type})}/>
             {submitted && !newAccount.type && <small className="p-error">Account type is required.</small>}
           </div>
         </Dialog>
@@ -466,9 +518,8 @@ const Dashboard: React.FC = () => {
             fromAccountId={selectedAccount?.id}
             onHide={() => setShowTransferDialog(false)}
             onTransferComplete={() => {
-              loadAccounts();
               if (selectedAccount) {
-                loadTransactions(selectedAccount.id);
+                reloadTransactions(selectedAccount.id);
               }
             }}
         />

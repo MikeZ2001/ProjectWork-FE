@@ -3,10 +3,7 @@ import {DataTable} from 'primereact/datatable';
 import {Column} from 'primereact/column';
 import {Button} from 'primereact/button';
 import {Dialog} from 'primereact/dialog';
-import {InputText} from 'primereact/inputtext';
 import {Dropdown} from 'primereact/dropdown';
-import {InputNumber} from 'primereact/inputnumber';
-import {Calendar} from 'primereact/calendar';
 import {Toast} from 'primereact/toast';
 import {Account} from "@models/account";
 import {Transaction} from "@models/transaction";
@@ -128,8 +125,6 @@ const TransactionManagement: React.FC = () => {
       await loadTransactions(selectedAccount.id, newPage, event.rows)
     }
   };
-
-
 
   const openNew = () => {
     loadCategories();
@@ -338,10 +333,10 @@ const TransactionManagement: React.FC = () => {
           value={selectedAccount}
           options={accounts}
           onChange={onAccountChange}
-          optionLabel="type"
+          optionLabel="name"
           itemTemplate={(option: Account) => (
             <div>
-              {option.type.charAt(0).toUpperCase() + option.type.slice(1)} ({formatCurrency(option.balance)})
+              {option.name} ({formatCurrency(option.balance)})
             </div>
           )}
           placeholder="Select an Account"
