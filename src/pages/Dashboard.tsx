@@ -21,6 +21,7 @@ import { useAccounts } from '../hooks/useAccounts';
 import { useTransactions } from '../hooks/useTransactions';
 import { useCategories } from '../hooks/useCategories';
 import { useAllTransactions } from '../hooks/useAllTransactions';
+import  {AccountSummary} from "../components/Dashboard/AccountSummary";
 
 const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
 const monthOptions = [{ label: 'All', value: 'all' }, ...allMonths.map(m => ({ label: m.toString().padStart(2, '0'), value: m }))];
@@ -338,6 +339,9 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const totalAmountAccounts = (accounts: Account[]): number =>
+      accounts.reduce((sum, acct) => sum + acct.balance, 0);
+
   return (
     <div className="grid">
       <div className="col-12 md:col-6 lg:col-4">
@@ -433,14 +437,38 @@ const Dashboard: React.FC = () => {
                   </div>
                 </Card>
               </div>
-              <div className="col-12 md:col-4 flex">
+              <div className="col-12 md:col-4 flex gap-2">
                 <Card title={getChartTitle('Net Savings', selectedYear, selectedMonth)} className="w-full">
                   <div className={netSavingsThisMonth >= 0 ? 'text-2xl font-bold text-green-700' : 'text-2xl font-bold text-red-700'}>
                     {formatCurrency(netSavingsThisMonth)}
                   </div>
                 </Card>
+
+                <Card>
+                  <p className="text-lg font-bold">Available Actions</p>
+                  <div className="flex gap-5 mt-2">
+                    <Button label="Deposit" icon="pi pi-arrow-down"
+                            onClick={() => {
+                              setNewTransaction({type: TransactionType.Deposit, amount: 0, description: ''});
+                              setShowTransactionDialog(true);
+                            }}/>
+                    <Button label="Withdraw" icon="pi pi-arrow-up" className="p-button-secondary"
+                            onClick={() => {
+                              setNewTransaction({type: TransactionType.Withdrawal, amount: 0, description: ''});
+                              setShowTransactionDialog(true);
+                            }}/>
+                    <Button label="Transfer" icon="pi pi-send" className="p-button-info"
+                            onClick={() => setShowTransferDialog(true)}
+                            disabled={accounts.length < 2}/>
+                  </div>
+                </Card>
               </div>
             </div>
+          </div>
+
+
+          <div>
+            <AccountSummary accounts={accounts}></AccountSummary>
           </div>
 
           <div className="col-12">
@@ -455,15 +483,15 @@ const Dashboard: React.FC = () => {
                     const startingBalance = selectedAccount?.balance || 0;
                     const runningBalances = getRunningBalances(filteredTransactions, startingBalance);
                     return (
-                      <DataTable
-                        value={filteredTransactions}
-                        lazy
-                        paginator
-                        first={(currentPage - 1) * rows}
-                        rows={rows}
-                        totalRecords={totalRecords}
-                        onPage={onPageChange}
-                        loading={accountsLoading}
+                        <DataTable
+                            value={filteredTransactions}
+                            lazy
+                            paginator
+                            first={(currentPage - 1) * rows}
+                            rows={rows}
+                            totalRecords={totalRecords}
+                            onPage={onPageChange}
+                            loading={accountsLoading}
                         dataKey="id"
                         emptyMessage="No transactions found"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
