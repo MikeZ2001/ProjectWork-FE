@@ -2,6 +2,20 @@ import {Transaction} from "@models/transaction";
 import api from "../api";
 
 class TransactionService {
+
+    async getAllTransactionsByAuthUser(): Promise<{ data: Transaction[]}> {
+        try {
+            const response = await api.get(`/v1/transactions-by-user`);
+
+            return {
+                data: response.data,
+            };
+        }   catch (error) {
+            console.error(`Error fetching transactions for auth user`, error);
+            throw error;
+        }
+    }
+
     async getTransactions(accountId: number, page: number = 1, per_page: number = 10): Promise<{ data: Transaction[]; total: number }> {
         try {
             const response = await api.get(`/v1/accounts/${accountId}/transactions?page=${page}&per_page=${per_page}`);

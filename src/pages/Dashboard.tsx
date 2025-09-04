@@ -20,7 +20,7 @@ import {Dropdown, DropdownChangeEvent} from "primereact/dropdown";
 import { useAccounts } from '../hooks/useAccounts';
 import { useTransactions } from '../hooks/useTransactions';
 import { useCategories } from '../hooks/useCategories';
-import { useAllTransactions } from '../hooks/useAllTransactions';
+import {useAllTransactions, useAllTransactionsByAuthUser} from '../hooks/useAllTransactions';
 import  {AccountSummary} from "../components/Dashboard/AccountSummary";
 
 const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -65,6 +65,8 @@ const monthNames = [
   { label: 'Dec', value: 12 }
 ];
 
+
+
 const Dashboard: React.FC = () => {
   const { accounts, loading: accountsLoading, setAccounts } = useAccounts();
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -81,9 +83,55 @@ const Dashboard: React.FC = () => {
   } = useTransactions(selectedAccount?.id, currentPage, rows);
 
   const { transactions: allTransactions, loading: allTxLoading } = useAllTransactions(selectedAccount?.id);
+// NEW: fetch all transactions across ALL accounts (pass undefined or adjust hook to support it)
+
+  const { transactions: allTxAllAccounts, loading: allTxAllAccountsLoading } =
+      useAllTransactionsByAuthUser();
+
 
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(currentMonth);
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(currentYear);
+
+  // Fall back to current month/year when dropdown is "All"
+  const effectiveYear: number = selectedYear === 'all' ? currentYear : selectedYear;
+  const effectiveMonth: number = selectedMonth === 'all' ? currentMonth : selectedMonth;
+
+  const filteredAllAccounts = (allTxAllAccounts || []).filter((t: Transaction) => {
+    const d = new Date(t.transaction_date);
+    return d.getFullYear() === effectiveYear && (d.getMonth() + 1) === effectiveMonth;
+  });
+
+  const totalSpendingAllAccounts = filteredAllAccounts
+      .filter(t => t.type === TransactionType.Withdrawal)
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  const spendingByCategoryAll = (() => {
+    const map: Record<string, number> = {};
+    filteredAllAccounts
+        .filter(t => t.type === TransactionType.Withdrawal)
+        .forEach(t => {
+          const name = t.category?.name || 'Uncategorized';
+          map[name] = (map[name] || 0) + (Number(t.amount) || 0);
+        });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  })();
+
+  const totalDepositAllAccounts = filteredAllAccounts
+      .filter(t => t.type === TransactionType.Deposit)
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  const depositByCategoryAll = (() => {
+    const map: Record<string, number> = {};
+    filteredAllAccounts
+        .filter(t => t.type === TransactionType.Deposit)
+        .forEach(t => {
+          const name = t.category?.name || 'Uncategorized';
+          map[name] = (map[name] || 0) + (Number(t.amount) || 0);
+        });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  })();
+
+
 
   const years = Array.from(new Set(allTransactions.map((t: Transaction) => new Date(t.transaction_date).getFullYear()))) as number[];
   years.sort((a, b) => a - b);
@@ -91,9 +139,7 @@ const Dashboard: React.FC = () => {
 
   const filteredTransactions = allTransactions.filter((t: Transaction) => {
     const d = new Date(t.transaction_date);
-    const yearMatch = selectedYear === 'all' || d.getFullYear() === selectedYear;
-    const monthMatch = selectedMonth === 'all' || (d.getMonth() + 1) === selectedMonth;
-    return yearMatch && monthMatch;
+    return d.getFullYear() === effectiveYear && (d.getMonth() + 1) === effectiveMonth;
   });
 
   const incomeThisMonth = filteredTransactions
@@ -339,9 +385,6 @@ const Dashboard: React.FC = () => {
     });
   };
 
-  const totalAmountAccounts = (accounts: Account[]): number =>
-      accounts.reduce((sum, acct) => sum + acct.balance, 0);
-
   return (
     <div className="grid">
       <div className="col-12 md:col-6 lg:col-4">
@@ -365,11 +408,59 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
+      {/* GLOBAL (ALL ACCOUNTS) SPENDING WIDGETS */}
+      <div className="col-12 md:col-6 lg:col-8">
+        <div className="grid h-full">
+          <div className="col-12 md:col-4">
+            <Card title={getChartTitle('Total Spending (All Accounts)', effectiveYear, effectiveMonth)}>
+              <div className="text-2xl font-bold text-red-700">{formatCurrency(totalSpendingAllAccounts)}</div>
+              <small className="block mt-1">Withdrawals across every account</small>
+            </Card>
+
+          </div>
+
+          <div className="col-12 md:col-4">
+          <Card title={getChartTitle('Total Deposit (All Accounts)', effectiveYear, effectiveMonth)}>
+            <div className="text-2xl font-bold text-red-700">{formatCurrency(totalDepositAllAccounts)}</div>
+            <small className="block mt-1">Deposit across every account</small>
+          </Card>
+          </div>
+
+          <div className="col-12 md:col-4">
+            <AccountSummary accounts={accounts}></AccountSummary>
+          </div>
+
+
+          <div className="col-12 md:col-8">
+            <Card title={getChartTitle('Spending by Category (All Accounts)', effectiveYear, effectiveMonth)}>
+              {spendingByCategoryAll.length === 0 ? (
+                  <div className="text-center">No spending in this period.</div>
+              ) : (
+                  <ul className="list-none p-0 m-0">
+                    {spendingByCategoryAll.map(([cat, amt]) => {
+                      const pct = totalSpendingAllAccounts > 0 ? (amt / totalSpendingAllAccounts) * 100 : 0;
+                      return (
+                          <li key={cat}
+                              className="flex justify-content-between align-items-center py-1 border-bottom-1 border-gray-200">
+                            <span>{cat}</span>
+                            <span className="font-bold">
+                    {formatCurrency(amt)} <small className="text-500">({pct.toFixed(1)}%)</small>
+                  </span>
+                          </li>
+                      );
+                    })}
+                  </ul>
+              )}
+            </Card>
+          </div>
+        </div>
+      </div>
+
 
       {selectedAccount && (
-        <>
+          <>
 
-          <div className="col-12 md:col-6 lg:col-8">
+            <div className="col-12 md:col-6 lg:col-8">
             <div className="grid">
 
               <div className="col-12 md:col-6">
@@ -385,7 +476,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               <div className="col-12 md:col-6">
-                <Card title={getChartTitle('Top Categories', selectedYear, selectedMonth)}>
+                <Card title={getChartTitle('Top Categories', effectiveYear, effectiveMonth)}>
                   <div className="mb-3">
                     <strong>Top Spending Categories</strong>
                     {topSpendingCategories.length === 0 ? (
@@ -424,29 +515,29 @@ const Dashboard: React.FC = () => {
           <div className="col-12 md:col-6 lg:col-8">
             <div className="grid h-full">
               <div className="col-12 md:col-4 flex">
-                <Card title={getChartTitle('Income', selectedYear, selectedMonth)} className="w-full">
-                  <div className="text-2xl font-bold text-green-600 mb-1">{formatCurrency(incomeThisMonth)}</div>
+                <Card title={getChartTitle('Income', effectiveYear, effectiveMonth)} className="w-full">
+                <div className="text-2xl font-bold text-green-600 mb-1">{formatCurrency(incomeThisMonth)}</div>
                   <div className={incomeThisMonth > 0 ? 'text-green-500' : incomeThisMonth < 0 ? 'text-red-500' : ''}>
                   </div>
                 </Card>
               </div>
               <div className="col-12 md:col-4 flex">
-                <Card title={getChartTitle('Expenses', selectedYear, selectedMonth)} className="w-full">
-                  <div className="text-2xl font-bold text-red-600 mb-1">{formatCurrency(expensesThisMonth)}</div>
+                <Card title={getChartTitle('Expenses', effectiveYear, effectiveMonth)} className="w-full">
+                <div className="text-2xl font-bold text-red-600 mb-1">{formatCurrency(expensesThisMonth)}</div>
                   <div className={expensesThisMonth > 0 ? 'text-red-500' : expensesThisMonth < 0 ? 'text-green-500' : ''}>
                   </div>
                 </Card>
               </div>
               <div className="col-12 md:col-4 flex gap-2">
-                <Card title={getChartTitle('Net Savings', selectedYear, selectedMonth)} className="w-full">
-                  <div className={netSavingsThisMonth >= 0 ? 'text-2xl font-bold text-green-700' : 'text-2xl font-bold text-red-700'}>
+                <Card title={getChartTitle('Net Savings', effectiveYear, effectiveMonth)} className="w-full">
+                <div className={netSavingsThisMonth >= 0 ? 'text-2xl font-bold text-green-700' : 'text-2xl font-bold text-red-700'}>
                     {formatCurrency(netSavingsThisMonth)}
                   </div>
                 </Card>
 
                 <Card>
                   <p className="text-lg font-bold">Available Actions</p>
-                  <div className="flex gap-5 mt-2">
+                  <div className="flex gap-2 mt-2">
                     <Button label="Deposit" icon="pi pi-arrow-down"
                             onClick={() => {
                               setNewTransaction({type: TransactionType.Deposit, amount: 0, description: ''});
@@ -466,13 +557,8 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-
-          <div>
-            <AccountSummary accounts={accounts}></AccountSummary>
-          </div>
-
           <div className="col-12">
-            <Card title={getChartTitle('Recent Transactions', selectedYear, selectedMonth)}
+            <Card title={getChartTitle('Recent Transactions', effectiveYear, effectiveMonth)}
                   subTitle={`for ${selectedAccount.name} Account #${String(selectedAccount?.id).substring(0, 8)}`}>
               {filteredTransactions.length === 0 ? (
                   <div className="p-4 text-center">
