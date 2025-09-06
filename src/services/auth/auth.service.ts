@@ -9,13 +9,8 @@ class AuthService {
     try {
       const response = await api.post<LoginResponseDto>('/v1/login', credentials);
       
-      // Store tokens in localStorage for cross-domain requests
-      if (response.data.access_token) {
-        localStorage.setItem('access_token', response.data.access_token);
-      }
-      if (response.data.refresh_token) {
-        localStorage.setItem('refresh_token', response.data.refresh_token);
-      }
+      // Tokens are now stored in HTTP-only cookies by the backend
+      // No need to manually store them in localStorage
       
       return response.data;
     } catch (error) {
@@ -35,19 +30,22 @@ class AuthService {
   }
 
   logout(): void {
-      // Clear stored tokens
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      
+      // Backend will clear HTTP-only cookies
       api.post('/v1/logout').catch(error => console.error('Logout error:', error));
   }
 
   isAuthenticated(): boolean {
-      return !!localStorage.getItem('access_token');
+      // We can't check HTTP-only cookies from JavaScript
+      // The backend middleware will handle authentication
+      // This method is kept for compatibility but always returns true
+      // The actual authentication check happens on the backend
+      return true;
   }
 
   getAccessToken(): string | null {
-      return localStorage.getItem('access_token');
+      // We can't access HTTP-only cookies from JavaScript
+      // The backend middleware will handle token extraction
+      return null;
   }
 
 }
