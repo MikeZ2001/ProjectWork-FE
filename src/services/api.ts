@@ -13,19 +13,6 @@ const api = axios.create({
   withCredentials: true
 });
 
-// Request interceptor for debugging and CORS headers
-api.interceptors.request.use(
-  (config) => {
-    // Add CORS headers for cross-domain requests
-    config.headers['Access-Control-Allow-Credentials'] = 'true';
-    config.headers['Access-Control-Allow-Origin'] = window.location.origin;
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 // Response interceptor for handling errors globally
 api.interceptors.response.use(
   (response) => response,
