@@ -6,7 +6,7 @@ import {Password} from 'primereact/password';
 import {Button} from 'primereact/button';
 import {Message} from 'primereact/message';
 import {classNames} from 'primereact/utils';
-import { useAuth } from '../../contexts/AuthContext';
+import AuthService from '../../services/auth/auth.service';
 
 interface EmailTextFieldProps {
   email: string;
@@ -77,9 +77,9 @@ const LoginButton: React.FC<LoginButtonProps> = ({ email, password, loading }) =
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
-    const { login, isAuthenticated, loading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [submitted, setSubmitted] = useState(false);
     const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
@@ -92,28 +92,22 @@ const Login: React.FC = () => {
       }
     }, []);
 
-    // Redirect if already authenticated
-    useEffect(() => {
-        if (isAuthenticated) {
-            navigate('/dashboard');
-        }
-    }, [isAuthenticated, navigate]);
-
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitted(true);
 
         try {
+            setLoading(true);
             setError(null);
-            const success = await login(email, password);
-            
-            if (success) {
-                navigate('/dashboard');
-            } else {
-                setError('Invalid email or password');
-            }
+
+            await AuthService.login({email, password});
+
+            // Redirect to dashboard
+            navigate('/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.error_description || 'An error occurred during login');
+        } finally {
+            setLoading(false);
         }
     };
 
