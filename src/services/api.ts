@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Define base API URL
-const API_URL = 'https://projectwork-be.onrender.com/api';
+const API_URL = 'https://localhost/api';
 
 // Create axios instance with default config
 const api = axios.create({
